@@ -150,6 +150,37 @@ repas dans la journée reçoit un e-mail "Ne perds pas ta flamme !".
 vérifier le domaine `assiettly.fr` (DNS DKIM/SPF fournis par Resend), et
 renseigner `RESEND_API_KEY` / `RESEND_FROM_EMAIL` / `CRON_SECRET` sur Vercel.
 
+## Notifications push (Web Push)
+
+Deuxième canal de rappel, en plus de l'e-mail, avec consentement explicite
+recueilli à l'onboarding (dernière étape, optionnelle — ne bloque jamais la
+suite du parcours si l'utilisateur refuse ou ferme la popup du navigateur).
+
+- **VAPID** : paire de clés générée une fois (`web-push generate-vapid-keys`)
+  — `NEXT_PUBLIC_VAPID_PUBLIC_KEY` (exposée au navigateur) et
+  `VAPID_PRIVATE_KEY` (jamais exposée, signe les envois côté serveur).
+- `apps/web/public/sw.js` : service worker minimal (écoute `push` et
+  `notificationclick`, ouvre `/journal/ajouter` au clic).
+- `apps/web/public/icon-flamme-192.png` : icône de notification, rendue à
+  partir du SVG de marque (`FlammeIcon`) pour rester cohérent visuellement.
+- `apps/web/src/lib/pushClient.ts` : côté navigateur, demande la permission
+  (`Notification.requestPermission`) et crée l'abonnement
+  (`PushManager.subscribe`).
+- `apps/web/src/server/actions/push.ts` : stocke/supprime l'abonnement
+  (table `push_subscriptions`, une ligne par appareil/navigateur).
+- `apps/web/src/lib/webpush.ts` : client `web-push` côté serveur, signé
+  avec les clés VAPID.
+- Le cron `streak-reminders` envoie désormais **e-mail ET push** à chaque
+  profil concerné ; les abonnements expirés/révoqués (erreurs 404/410 de
+  `web-push`) sont automatiquement supprimés de la base.
+- `apps/web/src/components/NotificationsToggle.tsx` (page Profil) : permet
+  d'activer/désactiver après coup, pas seulement à l'onboarding.
+
+À faire côté utilisateur : renseigner `NEXT_PUBLIC_VAPID_PUBLIC_KEY`,
+`VAPID_PRIVATE_KEY` et `VAPID_SUBJECT` sur Vercel (mêmes valeurs qu'en
+local, à ne jamais régénérer une fois des utilisateurs abonnés — ça
+invaliderait tous les abonnements existants).
+
 ## Prochaines étapes suggérées
 
 1. Vérifier le domaine `assiettly.fr` sur Resend et renseigner les clés

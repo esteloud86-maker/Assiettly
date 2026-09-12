@@ -76,21 +76,33 @@ pnpm install
 2. Crée un endpoint de webhook pointant vers `<NEXT_PUBLIC_APP_URL>/api/webhooks/stripe`,
    écoutant `customer.subscription.created|updated|deleted`.
 
-### 4. Configurer Resend (rappels de flamme par e-mail)
+### 4. Configurer les notifications push
+
+Génère une paire de clés VAPID (une seule fois — ne jamais les régénérer
+ensuite, ça invaliderait tous les abonnements existants) :
+
+```bash
+npx web-push generate-vapid-keys
+```
+
+Renseigne `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` et
+`VAPID_SUBJECT` (`mailto:ton-email@assiettly.fr`).
+
+### 5. Configurer Resend (rappels de flamme par e-mail)
 
 1. Crée un compte sur [resend.com](https://resend.com), récupère une clé API.
 2. Ajoute et vérifie ton domaine d'envoi (DNS DKIM/SPF fournis par Resend).
 3. Choisis un `CRON_SECRET` (chaîne aléatoire) — Vercel Cron l'enverra
    automatiquement dans l'en-tête `Authorization` pour protéger la route.
 
-### 5. Configurer et lancer l'app
+### 6. Configurer et lancer l'app
 
 ```bash
 cp apps/web/.env.example apps/web/.env
 # renseigner DATABASE_URL, DIRECT_URL, NEXT_PUBLIC_SUPABASE_URL,
 # NEXT_PUBLIC_SUPABASE_ANON_KEY, STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET,
 # STRIPE_PRICE_ID_*, NEXT_PUBLIC_APP_URL, RESEND_API_KEY, RESEND_FROM_EMAIL,
-# CRON_SECRET
+# CRON_SECRET, NEXT_PUBLIC_VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, VAPID_SUBJECT
 
 pnpm --filter @assiettly/web prisma:migrate   # crée les tables
 pnpm --filter @assiettly/web dev              # démarre sur http://localhost:3000
@@ -130,7 +142,9 @@ curl -H "Authorization: Bearer $CRON_SECRET" http://localhost:3000/api/cron/stre
 - Suivi de poids avec graphique de tendance
 - Système de flamme : calcul quotidien, freeze (2/mois), paliers de badges
   (7/30/100/365 jours), **écran calendrier mensuel** dédié
-- **Rappel quotidien par e-mail** (Resend) si la flamme est en danger
+- **Rappel quotidien par e-mail** (Resend) **et notification push**
+  (opt-in à l'onboarding, activable/désactivable depuis le profil) si la
+  flamme est en danger
 
 ## Non implémenté dans ce MVP (prévu ensuite)
 

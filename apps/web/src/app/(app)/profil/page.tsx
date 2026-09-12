@@ -1,3 +1,4 @@
+import { NotificationsToggle } from "@/components/NotificationsToggle";
 import { ouvrirPortailAbonnement } from "@/server/actions/billing";
 import { requireProfile } from "@/server/auth";
 import { estPremium } from "@/server/billing";
@@ -42,6 +43,11 @@ export default async function ProfilPage() {
         ) : (
           <p className="text-charbon-400">Aucun abonnement actif.</p>
         )}
+      </div>
+
+      <div className="rounded-2xl bg-creme-50 p-6 shadow-sm">
+        <h2 className="mb-2 font-titre font-semibold text-charbon-800">Notifications</h2>
+        <NotificationsToggle />
       </div>
 
       <div className="rounded-2xl bg-creme-50 p-6 shadow-sm">

@@ -69,12 +69,13 @@ model Profile {
   stripeCustomerId   String?         @unique @map("stripe_customer_id")
   createdAt          DateTime        @default(now()) @map("created_at")
 
-  goals         Goal[]
-  weightLogs    WeightLog[]
-  meals         Meal[]
-  streakDays    StreakDay[]
-  streakSummary StreakSummary?
-  subscription  Subscription?
+  goals             Goal[]
+  weightLogs        WeightLog[]
+  meals             Meal[]
+  streakDays        StreakDay[]
+  streakSummary     StreakSummary?
+  subscription      Subscription?
+  pushSubscriptions PushSubscription[]
 
   @@map("profiles")
 }
@@ -202,4 +203,17 @@ model Subscription {
   updatedAt             DateTime          @updatedAt @map("updated_at")
 
   @@map("subscriptions")
+}
+
+model PushSubscription {
+  id        String   @id @default(uuid()) @db.Uuid
+  profileId String   @map("profile_id") @db.Uuid
+  profile   Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([profileId])
+  @@map("push_subscriptions")
 }

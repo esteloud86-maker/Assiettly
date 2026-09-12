@@ -8,7 +8,9 @@ import {
   type Sexe,
 } from "@assiettly/shared";
 import { useMemo, useState, useTransition } from "react";
+import { demanderPermissionEtSabonner } from "@/lib/pushClient";
 import { terminerOnboarding } from "@/server/actions/onboarding";
+import { enregistrerAbonnementPush } from "@/server/actions/push";
 
 interface Reponses {
   objectifType: ObjectifType | null;
@@ -91,12 +93,15 @@ function ChampNombre({
   );
 }
 
-const TOTAL_ETAPES = 10;
+const TOTAL_ETAPES = 11;
+
+type StatutNotifications = "inconnu" | "en_cours" | "active" | "refuse";
 
 export function OnboardingWizard() {
   const [etape, setEtape] = useState(0);
   const [isPending, startTransition] = useTransition();
   const [erreur, setErreur] = useState<string | null>(null);
+  const [statutNotif, setStatutNotif] = useState<StatutNotifications>("inconnu");
   const [reponses, setReponses] = useState<Reponses>({
     objectifType: null,
     sexe: null,
@@ -110,6 +115,21 @@ export function OnboardingWizard() {
 
   function majReponse<K extends keyof Reponses>(cle: K, valeur: Reponses[K]) {
     setReponses((r) => ({ ...r, [cle]: valeur }));
+  }
+
+  async function activerNotifications() {
+    setStatutNotif("en_cours");
+    try {
+      const abonnement = await demanderPermissionEtSabonner();
+      if (!abonnement) {
+        setStatutNotif("refuse");
+        return;
+      }
+      await enregistrerAbonnementPush(abonnement);
+      setStatutNotif("active");
+    } catch {
+      setStatutNotif("refuse");
+    }
   }
 
   const profilComplet =
@@ -271,6 +291,37 @@ export function OnboardingWizard() {
           <p className="text-sm text-charbon-400">
             Essai gratuit de 7 jours pour découvrir Assiettly en entier, sans engagement.
           </p>
+        </div>
+      ),
+    },
+    {
+      titre: "Active les rappels",
+      peutContinuer: true,
+      contenu: (
+        <div className="space-y-4">
+          <div className="rounded-2xl bg-creme-50 p-6 text-center">
+            <p className="text-4xl">🔔</p>
+            <p className="mt-2 font-titre font-semibold text-charbon-800">Ne perds jamais ta flamme</p>
+            <p className="mt-1 text-sm text-charbon-400">
+              Active les notifications pour recevoir un rappel si ta flamme risque de s&rsquo;éteindre en fin
+              de journée.
+            </p>
+          </div>
+          {statutNotif === "active" ? (
+            <p className="text-center font-medium text-sarcelle-600">Notifications activées ✓</p>
+          ) : statutNotif === "refuse" ? (
+            <p className="text-center text-sm text-charbon-400">
+              Pas de souci, tu pourras les activer plus tard depuis ton profil.
+            </p>
+          ) : (
+            <button
+              onClick={activerNotifications}
+              disabled={statutNotif === "en_cours"}
+              className="w-full rounded-2xl bg-corail-500 py-3.5 font-titre font-semibold text-white disabled:opacity-50"
+            >
+              {statutNotif === "en_cours" ? "..." : "Activer les notifications"}
+            </button>
+          )}
         </div>
       ),
     },
