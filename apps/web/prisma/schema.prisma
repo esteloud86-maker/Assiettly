@@ -98,6 +98,7 @@ model Profile {
   streakSummary     StreakSummary?
   subscription      Subscription?
   pushSubscriptions PushSubscription[]
+  foodAnalysisLogs  FoodAnalysisLog[]
 
   @@map("profiles")
 }
@@ -238,4 +239,22 @@ model PushSubscription {
 
   @@index([profileId])
   @@map("push_subscriptions")
+}
+
+// Journal des appels d'analyse de repas par photo (API Claude) — sert à
+// repérer les cas où la confiance est fréquemment basse pour ajuster le
+// prompt système. Ne stocke jamais l'image elle-même (minimisation RGPD).
+model FoodAnalysisLog {
+  id                String   @id @default(uuid()) @db.Uuid
+  profileId         String   @map("profile_id") @db.Uuid
+  profile           Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  modele            String
+  confianceGlobale  String?  @map("confiance_globale")
+  nombreIngredients Int      @default(0) @map("nombre_ingredients")
+  dureeMs           Int      @map("duree_ms")
+  erreur            String?
+  createdAt         DateTime @default(now()) @map("created_at")
+
+  @@index([profileId])
+  @@map("food_analysis_logs")
 }

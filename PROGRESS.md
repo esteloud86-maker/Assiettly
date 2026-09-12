@@ -490,16 +490,121 @@ fonctionne → Fonctionnalités → Comparatif → Tarifs → FAQ → Footer).
   apps natives.
 - Header et menu mobile mis à jour avec l'ancre `#faq`.
 
+## Analyse nutritionnelle par photo (API Claude)
+
+Implémentation du cœur technique du scan de repas : appel à l'API Claude
+(vision + structured outputs) pour identifier les aliments d'une photo et
+estimer leurs valeurs nutritionnelles, avec un niveau de confiance par
+ingrédient et global.
+
+**Vérification de la doc à jour avant d'écrire le code** (comme demandé) :
+`output_config.format` (type `json_schema`) est bien le paramètre actuel —
+l'ancien `output_format` est déprécié. Le schéma JSON doit avoir
+`additionalProperties: false` sur chaque objet. Le SDK TypeScript
+(`@anthropic-ai/sdk`, dernière version 0.125.0, installée) type nativement
+`output_config` et liste `claude-sonnet-4-5-20250929` parmi les modèles
+supportés. Vérifié aussi que l'image doit être placée avant le texte dans
+le message pour de meilleurs résultats (recommandation officielle),
+appliqué dans `analyserRepas.ts`.
+
+**Choix du modèle** : `claude-sonnet-4-5-20250929` (snapshot daté, jamais un
+alias non versionné en prod), isolé dans une seule constante
+(`MODELE_ANALYSE` dans `analyserRepas.ts`) pour pouvoir basculer facilement
+vers `claude-opus-4-5-20251101` si la précision doit primer sur le coût, ou
+vers la génération actuelle (`claude-sonnet-5`/`claude-opus-5`, également
+supportée par structured outputs) une fois évaluée en conditions réelles.
+
+**Structure du module** (`apps/web/src/server/foodAnalysis/`) :
+- `prompt.ts` : `FOOD_ANALYSIS_SYSTEM_PROMPT`, isolé pour pouvoir l'itérer
+  sans toucher au code d'appel
+- `schema.ts` : `ANALYSE_REPAS_JSON_SCHEMA` (passé à `output_config.format`)
+  et son miroir zod (`analyseRepasSchema`) qui valide la réponse à
+  l'exécution en défense en profondeur, même si structured outputs garantit
+  déjà la conformité — plus les types TS dérivés. Étendu par rapport au
+  schéma du brief avec `quantite_estimee_g` (nombre) en plus de
+  `quantite_estimee` (texte) : indispensable pour calculer les totaux et
+  ajuster les portions côté app, un texte libre ne suffit pas
+- `errors.ts` : `ErreurAnalyseImage`, `ErreurQuotaAnthropic`,
+  `ErreurReponseInvalide`, `ErreurTimeoutAnalyse`
+- `cache.ts` : dédup légère en mémoire par hash sha256 de l'image (TTL
+  5 min) — **best-effort seulement** : en serverless (Vercel), chaque
+  instance a sa propre mémoire et peut être recyclée, donc ça réduit les
+  doublons évidents (double-tap) mais n'est pas une garantie à l'échelle ;
+  un store partagé (Redis/Vercel KV) serait nécessaire pour une vraie
+  dédup, pas encore en place
+- `analyserRepas.ts` : construit le message (image en base64 + prompt
+  système + `output_config`), appelle l'API avec un timeout de 25 s,
+  parse/valide la réponse, journalise l'appel, mappe les erreurs SDK
+  (`RateLimitError` → quota, `APIConnectionTimeoutError` → timeout,
+  `BadRequestError` → image invalide) vers les erreurs typées ci-dessus
+
+**Journalisation** (`FoodAnalysisLog`, nouveau modèle Prisma) : modèle
+utilisé, confiance globale, nombre d'ingrédients, durée, erreur éventuelle
+— **jamais l'image elle-même**, conformément aux contraintes RGPD déjà
+posées pour l'app. Sert à repérer plus tard les cas où la confiance est
+fréquemment basse pour ajuster le prompt système.
+
+**Server Action** (`src/server/actions/scan.ts`) : `analyserPhoto()` vérifie
+l'authentification, le type MIME (jpeg/png/webp) et la taille (8 Mo max
+décodés) avant d'appeler le module — évite de payer un appel API pour une
+requête manifestement invalide.
+
+**Écran de scan** (`EcranScan.tsx`, remplace l'ancien `EcranScanMock`) :
+capture réelle via `<input type="file" accept="image/*" capture="environment">`
+(fonctionne nativement sur mobile, plus simple et plus fiable qu'une
+implémentation `getUserMedia` custom pour un premier lancement), état de
+chargement pendant l'appel réel, écran de résultat avec badge de confiance
+par ingrédient et global, bannière explicite si la confiance globale est
+"basse" ("vérifie et corrige les quantités avant de valider"), bouton
+"Corriger" qui rend les quantités éditables (recalcul des macros en direct
+à partir du taux par gramme), bouton "Terminé" qui persiste via l'action
+`ajouterRepas` déjà existante (pas de nouvelle logique de persistance) et
+redirige vers le dashboard. Code-barres et étiquette restent des
+placeholders "bientôt disponibles" (l'IA vision ne couvre que le scan
+photo pour l'instant).
+
+**Tests effectués** : `pnpm typecheck` et `pnpm build` propres. La requête
+a été vérifiée en conditions réelles contre l'API (réseau sortant testé,
+corps de requête accepté — rejeté seulement sur l'authentification, pas
+sur le format) car **aucune clé Anthropic réelle n'est configurée dans cet
+environnement** (`.env` contient encore `sk-ant-placeholder`). Aucune
+analyse réelle sur une vraie photo n'a donc pu être testée de bout en
+bout — à faire côté utilisateur avec une clé valide avant la mise en
+production, notamment pour évaluer si Sonnet 4.5 suffit en précision ou
+si Opus 4.5 est nécessaire sur les plats composites (quiches, lasagnes,
+plats en sauce).
+
+**Migration Supabase à appliquer** (SQL Editor du dashboard) :
+
+```sql
+CREATE TABLE "food_analysis_logs" (
+    "id" UUID NOT NULL,
+    "profile_id" UUID NOT NULL,
+    "modele" TEXT NOT NULL,
+    "confiance_globale" TEXT,
+    "nombre_ingredients" INTEGER NOT NULL DEFAULT 0,
+    "duree_ms" INTEGER NOT NULL,
+    "erreur" TEXT,
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "food_analysis_logs_pkey" PRIMARY KEY ("id")
+);
+
+CREATE INDEX "food_analysis_logs_profile_id_idx" ON "food_analysis_logs"("profile_id");
+
+ALTER TABLE "food_analysis_logs" ADD CONSTRAINT "food_analysis_logs_profile_id_fkey" FOREIGN KEY ("profile_id") REFERENCES "profiles"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+```
+
 ## Prochaines étapes suggérées
 
-1. Activer les fournisseurs Google et Apple dans Supabase Auth (Authentication
+1. Renseigner une vraie clé `ANTHROPIC_API_KEY` (actuellement un
+   placeholder) et tester le scan de repas de bout en bout sur de vraies
+   photos — en particulier les plats composites (quiches, lasagnes, plats
+   en sauce) pour juger si Sonnet 4.5 suffit ou si Opus 4.5 est nécessaire
+2. Activer les fournisseurs Google et Apple dans Supabase Auth (Authentication
    → Providers) pour que les boutons OAuth de connexion/inscription
    fonctionnent réellement
-2. Vérifier le domaine `assiettly.fr` sur Resend et renseigner les clés
-3. Intégrer l'IA vision (scan photo) avec l'API Claude — brancher sur
-   `EcranScanMock` (remplacer la démo par un vrai flux caméra + upload +
-   détection) et sur l'écran de détail nutritionnel (vraie photo, bouton
-   "Corriger" fonctionnel)
+3. Vérifier le domaine `assiettly.fr` sur Resend et renseigner les clés
 4. Implémenter les Groupes (V2) : création/invitation, classement par
    streak persistant, réactions et commentaires — remplacer
    `FluxGroupesMock` par de vraies données

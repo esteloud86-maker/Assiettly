@@ -26,8 +26,10 @@ packages/
   synchroniser le statut d'abonnement.
 - **Aliments emballés** : [Open Food Facts](https://world.openfoodfacts.org)
   comme base de données de départ, avec cache local en base au premier scan.
-- **IA vision (scan photo de repas)** : prévue via l'API Claude (Anthropic),
-  non implémentée dans ce MVP (voir PROGRESS.md).
+- **IA vision (scan photo de repas)** : API Claude (Anthropic,
+  `claude-sonnet-4-5`) avec structured outputs — identification des
+  aliments, estimation nutritionnelle et niveau de confiance par ingrédient
+  (voir PROGRESS.md).
 - **E-mails transactionnels** : [Resend](https://resend.com) + templates
   [React Email](https://react.email) aux couleurs de la marque — rappel
   quotidien envoyé (via un cron Vercel) à qui risque de perdre sa flamme.
@@ -162,13 +164,16 @@ curl -H "Authorization: Bearer $CRON_SECRET" http://localhost:3000/api/cron/stre
 - **Rappel quotidien par e-mail** (Resend) **et notification push**
   (opt-in à l'onboarding, activable/désactivable depuis le profil) si la
   flamme est en danger
-- Aperçus non connectés (architecture posée, données de démonstration) :
-  scan caméra par IA vision et flux social par groupes
+- **Scan de repas par photo** : capture caméra réelle, analyse par l'API
+  Claude (identification des aliments, estimation nutritionnelle,
+  confiance par ingrédient et globale), résultat éditable avant validation
+- Aperçu non connecté (architecture posée, données de démonstration) : flux
+  social par groupes
 
 ## Non implémenté dans ce MVP (prévu ensuite)
 
-- Scan de repas par photo (IA vision — API Claude/Anthropic prévue)
-- Connexion Google / Apple (actuellement email/mot de passe uniquement)
+- Connexion Google / Apple : boutons et flux OAuth déjà câblés côté app,
+  mais les fournisseurs ne sont pas encore activés dans Supabase Auth
 - Scanner de code-barres via la caméra (saisie manuelle du code pour l'instant)
 - Animation de célébration des paliers de badges à l'ouverture de l'app
 - Fonctionnalités sociales (classement, défis — V2)
