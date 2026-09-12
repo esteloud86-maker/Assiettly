@@ -1,0 +1,21 @@
+{
+  "name": "assiettly",
+  "private": true,
+  "packageManager": "pnpm@9.7.0",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev:api": "pnpm --filter @assiettly/api dev",
+    "dev:mobile": "pnpm --filter @assiettly/mobile start",
+    "build:shared": "pnpm --filter @assiettly/shared build",
+    "build:api": "pnpm --filter @assiettly/api build",
+    "prisma:generate": "pnpm --filter @assiettly/api prisma:generate",
+    "prisma:migrate": "pnpm --filter @assiettly/api prisma:migrate",
+    "lint": "pnpm -r lint",
+    "typecheck": "pnpm -r typecheck"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.4"
+  }
+}
