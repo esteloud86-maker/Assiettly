@@ -7,8 +7,12 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  // Pooler transaction-mode (pgbouncer) : utilisé par l'app à l'exécution.
+  url       = env("DATABASE_URL")
+  // Connexion directe/session : utilisée par Prisma pour les migrations
+  // (le mode transaction du pooler ne supporte pas les DDL/verrous nécessaires).
+  directUrl = env("DIRECT_URL")
 }
 
 enum Sexe {
