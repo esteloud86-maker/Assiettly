@@ -5,3 +5,13 @@
 body {
   @apply bg-creme-100 text-charbon-800 font-corps;
 }
+
+/* Molette de l'onboarding (taille/poids/date) : scrollbar invisible, le
+   scroll-snap natif fait le reste. */
+.molette-scroll {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.molette-scroll::-webkit-scrollbar {
+  display: none;
+}

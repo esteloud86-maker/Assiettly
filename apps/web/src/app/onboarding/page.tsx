@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { OnboardingWizard } from "@/components/OnboardingWizard";
+import { OnboardingWizard } from "@/components/onboarding/OnboardingWizard";
 import { requireProfile } from "@/server/auth";
 
 export default async function OnboardingPage() {

@@ -181,6 +181,82 @@ suite du parcours si l'utilisateur refuse ou ferme la popup du navigateur).
 local, à ne jamais régénérer une fois des utilisateurs abonnés — ça
 invaliderait tous les abonnements existants).
 
+## Refonte de l'onboarding (13 écrans + calcul final animé)
+
+L'onboarding a été entièrement réécrit pour suivre un parcours en 13 étapes
+séparées (une question par écran, façon app fitness grand public), plus un
+écran final de calcul animé.
+
+**Nouvelles données collectées** (en plus de sexe/date de naissance/taille/
+poids/niveau d'activité/objectif/poids cible déjà existants) :
+- `dejaUtiliseAppSuivi` (bool) : a déjà utilisé une app de suivi nutritionnel
+- `suiviParCoach` (bool) : accompagné par un coach/diététicien
+- `freins` (tableau, multi-sélection) : ce qui freine habituellement
+  (régularité, temps, inspiration, envies sucrées, repas sociaux, soutien)
+- `typeAlimentation` : équilibré / végétarien / végan / pescetarien / flexitarien
+- `motivationPrincipale` : mieux manger / plus d'énergie / rester motivé /
+  bien dans son corps
+
+**Décisions produit validées avec l'utilisateur** :
+- Écran "sexe" étendu à 3 options (Femme / Homme / Autre). Pas de formule
+  Mifflin-St Jeor dédiée à un 3ᵉ sexe : pour `AUTRE`, on applique la moyenne
+  des deux ajustements existants (+5 / −161) — voir le commentaire dans
+  `calculerBMR` (`packages/shared/src/nutrition.ts`).
+- Les questions de fréquence d'activité ont été **fusionnées en 3 cartes**
+  simples (peu actif / modérément actif / très actif) plutôt qu'un curseur
+  numérique — les valeurs d'enum `LEGER`/`ACTIF` restent valides en base
+  (profils existants, calculs) mais ne sont plus atteignables depuis ce
+  nouvel onboarding.
+- Sélecteurs numériques (taille, poids, poids cible, date de naissance) :
+  vrai **picker à molette** (scroll-snap CSS natif, sans librairie) plutôt
+  qu'un champ numérique stylé — `MoletteValeur`/`MoletteValeurGenerique`
+  dans `src/components/onboarding/primitives/`.
+- **Unités cm/kg uniquement** (pas d'option impérial ft/in ou lbs), le
+  marché visé étant francophone.
+- L'ancien écran de "projection de date d'objectif" a été retiré du
+  parcours au profit d'un écran final unique qui anime un pourcentage
+  0→100 (2,2 s) tout en révélant progressivement les résultats **réels**
+  (`calculerObjectifs`, pas une animation factice) : calories, glucides,
+  protéines, lipides, "score santé".
+
+**Structure des fichiers** (`apps/web/src/components/onboarding/`) :
+- `types.ts` : `ProfilOnboarding`, état initial, `EtapeProps` générique
+- `primitives/` : `CarteChoix`, `ChoixOuiNon`, `MoletteValeur`,
+  `MoletteValeurGenerique`, `SelectDateNaissance` (3 molettes jour/mois/
+  année), `EncartAvertissement`
+- `etapes/` : un fichier par écran (`EtapeSexe`, `EtapeDateNaissance`,
+  `EtapeActivite`, `EtapeTaille`, `EtapePoidsActuel`, `EtapeAppSuivi`,
+  `EtapeCoach`, `EtapeObjectif`, `EtapeFreins`, `EtapePoidsCible` (avec
+  avertissement doux si hors fourchette de poids santé via
+  `calculerFourchettePoidsSain`), `EtapeAlimentation`, `EtapeMotivation`,
+  `EtapeNotifications` (consentement push, reprise de la fonctionnalité
+  existante), `EtapeCalculFinal`
+- `OnboardingWizard.tsx` : orchestrateur (config déclarative des étapes,
+  barre de progression, bouton précédent, validation "peut continuer" par
+  étape) ; appelle `terminerOnboarding` (Server Action) une seule fois à la
+  toute fin, sur l'écran de calcul.
+
+Vérifié avec `pnpm typecheck` (packages/shared + apps/web) et `pnpm build`
+(apps/web) — aucune erreur.
+
+**Migration Supabase à appliquer** (SQL Editor du dashboard Supabase) — deux
+migrations Prisma générées localement pour ce changement de schéma, à
+exécuter dans cet ordre :
+
+```sql
+-- 1) add_onboarding_survey_fields
+CREATE TYPE "TypeAlimentation" AS ENUM ('EQUILIBRE', 'VEGETARIEN', 'VEGAN', 'PESCETARIEN', 'FLEXITARIEN');
+CREATE TYPE "MotivationPrincipale" AS ENUM ('MIEUX_MANGER', 'PLUS_ENERGIE', 'RESTER_MOTIVE', 'BIEN_DANS_SON_CORPS');
+ALTER TABLE "profiles" ADD COLUMN     "deja_utilise_app_suivi" BOOLEAN,
+ADD COLUMN     "freins" TEXT[] DEFAULT ARRAY[]::TEXT[],
+ADD COLUMN     "motivation_principale" "MotivationPrincipale",
+ADD COLUMN     "suivi_par_coach" BOOLEAN,
+ADD COLUMN     "type_alimentation" "TypeAlimentation";
+
+-- 2) add_sexe_autre
+ALTER TYPE "Sexe" ADD VALUE 'AUTRE';
+```
+
 ## Prochaines étapes suggérées
 
 1. Vérifier le domaine `assiettly.fr` sur Resend et renseigner les clés

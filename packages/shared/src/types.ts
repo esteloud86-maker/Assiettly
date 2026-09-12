@@ -1,4 +1,4 @@
-export type Sexe = "HOMME" | "FEMME";
+export type Sexe = "HOMME" | "FEMME" | "AUTRE";
 
 export type NiveauActivite =
   | "SEDENTAIRE"
@@ -8,6 +8,22 @@ export type NiveauActivite =
   | "TRES_ACTIF";
 
 export type ObjectifType = "PERTE" | "MAINTIEN" | "PRISE_MASSE";
+
+export type TypeAlimentation = "EQUILIBRE" | "VEGETARIEN" | "VEGAN" | "PESCETARIEN" | "FLEXITARIEN";
+
+export type MotivationPrincipale =
+  | "MIEUX_MANGER"
+  | "PLUS_ENERGIE"
+  | "RESTER_MOTIVE"
+  | "BIEN_DANS_SON_CORPS";
+
+export type Frein =
+  | "MANQUE_REGULARITE"
+  | "MANQUE_TEMPS"
+  | "MANQUE_INSPIRATION"
+  | "ENVIES_SUCREES"
+  | "REPAS_SOCIAUX"
+  | "MANQUE_SOUTIEN";
 
 export type MealType = "PETIT_DEJ" | "DEJEUNER" | "DINER" | "COLLATION";
 

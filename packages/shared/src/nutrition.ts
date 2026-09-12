@@ -34,11 +34,16 @@ function ageEnAnnees(dateNaissanceIso: string, aujourdHui = new Date()): number 
   return age;
 }
 
-/** Métabolisme de base (formule de Mifflin-St Jeor). */
+/**
+ * Métabolisme de base (formule de Mifflin-St Jeor). Pour "AUTRE", on prend
+ * la moyenne des deux ajustements (+5 / -161) faute de formule dédiée.
+ */
 export function calculerBMR(profil: ProfilPhysique): number {
   const age = ageEnAnnees(profil.dateNaissance);
   const base = 10 * profil.poidsKg + 6.25 * profil.tailleCm - 5 * age;
-  return profil.sexe === "HOMME" ? base + 5 : base - 161;
+  if (profil.sexe === "HOMME") return base + 5;
+  if (profil.sexe === "FEMME") return base - 161;
+  return base - 78;
 }
 
 /** Dépense énergétique totale journalière (BMR * facteur d'activité). */
@@ -84,4 +89,18 @@ export function calculerProjection(
   dateEstimee.setDate(dateEstimee.getDate() + joursEstimes);
 
   return { joursEstimes, dateEstimee: dateEstimee.toISOString().slice(0, 10) };
+}
+
+/**
+ * Fourchette de poids usuellement considérée saine pour une taille donnée
+ * (IMC entre 18,5 et 25). Sert uniquement à afficher un avertissement doux
+ * à l'onboarding si le poids cible saisi sort largement de cette fourchette
+ * — jamais un diagnostic, juste une invitation à la prudence.
+ */
+export function calculerFourchettePoidsSain(tailleCm: number): { minKg: number; maxKg: number } {
+  const tailleM = tailleCm / 100;
+  return {
+    minKg: Math.round(18.5 * tailleM * tailleM),
+    maxKg: Math.round(25 * tailleM * tailleM),
+  };
 }

@@ -18,6 +18,7 @@ datasource db {
 enum Sexe {
   HOMME
   FEMME
+  AUTRE
 }
 
 enum NiveauActivite {
@@ -54,6 +55,21 @@ enum SubscriptionStatus {
   INCOMPLETE
 }
 
+enum TypeAlimentation {
+  EQUILIBRE
+  VEGETARIEN
+  VEGAN
+  PESCETARIEN
+  FLEXITARIEN
+}
+
+enum MotivationPrincipale {
+  MIEUX_MANGER
+  PLUS_ENERGIE
+  RESTER_MOTIVE
+  BIEN_DANS_SON_CORPS
+}
+
 model Profile {
   id                 String          @id @db.Uuid
   email              String          @unique
@@ -65,6 +81,12 @@ model Profile {
   niveauActivite     NiveauActivite? @map("niveau_activite")
   frequenceSportParSemaine Int?      @map("frequence_sport_semaine")
   objectifType       ObjectifType?   @map("objectif_type")
+  // Réponses complémentaires de l'onboarding (segmentation / personnalisation future)
+  dejaUtiliseAppSuivi  Boolean?             @map("deja_utilise_app_suivi")
+  suiviParCoach        Boolean?             @map("suivi_par_coach")
+  freins               String[]             @default([])
+  typeAlimentation     TypeAlimentation?    @map("type_alimentation")
+  motivationPrincipale MotivationPrincipale? @map("motivation_principale")
   onboardingTermine  Boolean         @default(false) @map("onboarding_termine")
   stripeCustomerId   String?         @unique @map("stripe_customer_id")
   createdAt          DateTime        @default(now()) @map("created_at")

@@ -128,12 +128,14 @@ curl -H "Authorization: Bearer $CRON_SECRET" http://localhost:3000/api/cron/stre
 ## Fonctionnalités du MVP actuel
 
 - Authentification (email / mot de passe via Supabase Auth)
-- **Onboarding multi-étapes** (une question par écran, barre de progression) :
-  objectif, sexe, âge, taille, poids actuel/cible, niveau d'activité,
-  fréquence de sport
-- Calcul immédiat des objectifs caloriques et macros (Mifflin-St Jeor), avec
-  explication de la méthode, puis écran de projection ("objectif atteint
-  vers le...")
+- **Onboarding en 13 écrans** (une question par écran, barre de progression,
+  pickers à molette natifs pour les valeurs numériques et la date de
+  naissance) : sexe, date de naissance, niveau d'activité, taille, poids
+  actuel, app de suivi déjà utilisée, coach/diététicien, objectif principal,
+  freins habituels, poids cible (avec avertissement doux si hors fourchette
+  santé), type d'alimentation, motivation principale, puis notifications
+- Écran final animé qui calcule réellement les objectifs (Mifflin-St Jeor)
+  pendant l'animation de progression, avant redirection vers le paywall
 - **Paywall** après l'onboarding : comparatif gratuit/premium, essai Stripe
   de 7 jours (carte requise, non débitée avant la fin), ou accès gratuit
 - Dashboard avec **anneau de progression calorique** + barres de macros

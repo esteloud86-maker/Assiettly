@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const sexeSchema = z.enum(["HOMME", "FEMME"]);
+export const sexeSchema = z.enum(["HOMME", "FEMME", "AUTRE"]);
 export const niveauActiviteSchema = z.enum([
   "SEDENTAIRE",
   "LEGER",
@@ -10,6 +10,27 @@ export const niveauActiviteSchema = z.enum([
 ]);
 export const objectifTypeSchema = z.enum(["PERTE", "MAINTIEN", "PRISE_MASSE"]);
 export const mealTypeSchema = z.enum(["PETIT_DEJ", "DEJEUNER", "DINER", "COLLATION"]);
+export const typeAlimentationSchema = z.enum([
+  "EQUILIBRE",
+  "VEGETARIEN",
+  "VEGAN",
+  "PESCETARIEN",
+  "FLEXITARIEN",
+]);
+export const motivationPrincipaleSchema = z.enum([
+  "MIEUX_MANGER",
+  "PLUS_ENERGIE",
+  "RESTER_MOTIVE",
+  "BIEN_DANS_SON_CORPS",
+]);
+export const freinSchema = z.enum([
+  "MANQUE_REGULARITE",
+  "MANQUE_TEMPS",
+  "MANQUE_INSPIRATION",
+  "ENVIES_SUCREES",
+  "REPAS_SOCIAUX",
+  "MANQUE_SOUTIEN",
+]);
 
 export const profilPhysiqueSchema = z.object({
   sexe: sexeSchema,
@@ -21,14 +42,18 @@ export const profilPhysiqueSchema = z.object({
 });
 
 export const onboardingSchema = z.object({
-  objectifType: objectifTypeSchema,
   sexe: sexeSchema,
   dateNaissance: z.string().date(),
+  niveauActivite: niveauActiviteSchema,
   tailleCm: z.number().int().min(50).max(250),
   poidsKg: z.number().min(20).max(400),
+  dejaUtiliseAppSuivi: z.boolean(),
+  suiviParCoach: z.boolean(),
+  objectifType: objectifTypeSchema,
+  freins: z.array(freinSchema),
   poidsCibleKg: z.number().min(20).max(400),
-  niveauActivite: niveauActiviteSchema,
-  frequenceSportParSemaine: z.number().int().min(0).max(14),
+  typeAlimentation: typeAlimentationSchema,
+  motivationPrincipale: motivationPrincipaleSchema,
 });
 
 export const updateProfileSchema = z.object({

@@ -1,26 +1,32 @@
 "use server";
 
 import { calculerObjectifs, onboardingSchema, type ProfilPhysique } from "@assiettly/shared";
+import type { Frein, MotivationPrincipale, TypeAlimentation } from "@assiettly/shared";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requireProfile } from "@/server/auth";
 
 export interface OnboardingInput {
-  objectifType: ProfilPhysique["objectifType"];
   sexe: ProfilPhysique["sexe"];
   dateNaissance: string;
+  niveauActivite: ProfilPhysique["niveauActivite"];
   tailleCm: number;
   poidsKg: number;
+  dejaUtiliseAppSuivi: boolean;
+  suiviParCoach: boolean;
+  objectifType: ProfilPhysique["objectifType"];
+  freins: Frein[];
   poidsCibleKg: number;
-  niveauActivite: ProfilPhysique["niveauActivite"];
-  frequenceSportParSemaine: number;
+  typeAlimentation: TypeAlimentation;
+  motivationPrincipale: MotivationPrincipale;
 }
 
 /**
- * Finalise l'onboarding : enregistre le profil physique, le premier poids
- * saisi, calcule et active l'objectif calorique, puis redirige vers le
- * paywall (essai gratuit avant le tableau de bord).
+ * Finalise l'onboarding : enregistre le profil physique et les réponses du
+ * questionnaire, le premier poids saisi, calcule et active l'objectif
+ * calorique, puis redirige vers le paywall (essai gratuit avant le
+ * tableau de bord).
  */
 export async function terminerOnboarding(input: OnboardingInput) {
   const data = onboardingSchema.parse(input);
@@ -37,8 +43,12 @@ export async function terminerOnboarding(input: OnboardingInput) {
         tailleCm: data.tailleCm,
         poidsCibleKg: data.poidsCibleKg,
         niveauActivite: data.niveauActivite,
-        frequenceSportParSemaine: data.frequenceSportParSemaine,
         objectifType: data.objectifType,
+        dejaUtiliseAppSuivi: data.dejaUtiliseAppSuivi,
+        suiviParCoach: data.suiviParCoach,
+        freins: data.freins,
+        typeAlimentation: data.typeAlimentation,
+        motivationPrincipale: data.motivationPrincipale,
         onboardingTermine: true,
       },
     }),
