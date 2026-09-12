@@ -24,6 +24,9 @@ export function MenuMobile() {
           <a href="#tarifs" onClick={() => setOuvert(false)} className="block font-medium text-charbon-800">
             Tarifs
           </a>
+          <a href="#faq" onClick={() => setOuvert(false)} className="block font-medium text-charbon-800">
+            FAQ
+          </a>
           <Link href="/connexion" onClick={() => setOuvert(false)} className="block font-medium text-charbon-800">
             Se connecter
           </Link>

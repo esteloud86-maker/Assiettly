@@ -16,6 +16,9 @@ export function HeaderLanding() {
           <a href="#tarifs" className="text-sm font-medium text-charbon-600 hover:text-charbon-800">
             Tarifs
           </a>
+          <a href="#faq" className="text-sm font-medium text-charbon-600 hover:text-charbon-800">
+            FAQ
+          </a>
         </nav>
 
         <div className="hidden items-center gap-3 sm:flex">

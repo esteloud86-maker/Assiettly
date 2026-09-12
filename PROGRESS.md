@@ -452,6 +452,44 @@ visuellement en mobile (400px) et desktop (1280px) : hero, 4 blocs
 fonctionnalités, réassurance, tarifs, footer, menu mobile ; écrans
 connexion/inscription/mot de passe oublié avec les boutons OAuth.
 
+## Landing : "Comment ça fonctionne", comparatif et FAQ
+
+Trois sections ajoutées à la landing suite à une version étendue du brief
+marketing, entre le Hero et le footer (ordre final : Hero → Comment ça
+fonctionne → Fonctionnalités → Comparatif → Tarifs → FAQ → Footer).
+
+- **`CommentCaFonctionne.tsx`** (`#comment-ca-marche`, juste après le
+  Hero) : 4 étapes numérotées dans l'ordre réel d'usage (photo → analyse IA
+  → flamme → suivi de progrès). Le CTA secondaire du Hero ("Voir comment ça
+  marche") pointe maintenant précisément vers cette ancre plutôt que vers
+  la section fonctionnalités.
+- **`Comparatif.tsx`** : remplace le composant `SocialProof` de la version
+  précédente (supprimé — son contenu de réassurance RGPD/UE se retrouve
+  dans le tableau). Tableau "Assiettly vs apps généralistes" : 4 critères,
+  chacun vrai et vérifiable côté Assiettly (hébergement UE confirmé sur
+  Supabase en `eu-west-3`, base alimentaire et interface pensées pour la
+  France, mécanique de flamme réellement implémentée). Aucun concurrent
+  n'est nommé, et la colonne "apps généralistes" reste volontairement
+  nuancée ("souvent partielle", "variable", "à vérifier") plutôt que des ❌
+  catégoriques sur des produits qu'on ne peut pas garantir dans le temps.
+  **Point d'attention** : la publicité comparative est encadrée en France
+  (Code de la consommation — exactitude, vérifiabilité, absence de
+  caractère trompeur) même sans nommer de marque précise ; ce tableau
+  devrait être relu avant un lancement public, et toute ligne ajoutée par
+  la suite doit rester strictement vérifiable au moment de la publication.
+- **`Faq.tsx`** (`#faq`) : accordéon en `<details>/<summary>` natifs — zéro
+  JavaScript, donc aucun impact sur la performance (contrainte du brief).
+  6 questions honnêtes : précision du scan (IA, ajustement manuel possible,
+  pas de taux de précision inventé), différence gratuit/Premium, mécanique
+  de la flamme et des freezes (±10 %, 2 freezes/mois — valeurs réelles du
+  code, pas des chiffres marketing), sécurité des données, résiliation à
+  tout moment, disponibilité mobile. Sur ce dernier point, réponse fidèle à
+  l'architecture réelle du produit : Assiettly est une web app responsive
+  (pas d'app native App Store/Play Store), ajoutable à l'écran d'accueil —
+  pas de faux "disponible sur iOS et Android" qui laisserait croire à des
+  apps natives.
+- Header et menu mobile mis à jour avec l'ancre `#faq`.
+
 ## Prochaines étapes suggérées
 
 1. Activer les fournisseurs Google et Apple dans Supabase Auth (Authentication

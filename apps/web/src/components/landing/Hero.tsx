@@ -21,7 +21,7 @@ export function Hero() {
               Essayer gratuitement
             </Link>
             <a
-              href="#fonctionnalites"
+              href="#comment-ca-marche"
               className="w-full rounded-2xl border border-creme-200 bg-creme-50 px-8 py-4 text-center font-titre font-semibold text-charbon-800 hover:bg-creme-200 sm:w-auto"
             >
               Voir comment ça marche
