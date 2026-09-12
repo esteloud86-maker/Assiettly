@@ -107,13 +107,55 @@ trouvé et corrigé pendant ce test : la quantité d'un aliment ajouté au panie
 était figée à 100 g sans possibilité de l'ajuster (`AjouterRepasForm.tsx`
 propose maintenant un champ éditable).
 
+## Mise en production (Vercel + Supabase + Stripe réels)
+
+Déployé sur Vercel (`assiettly-web.vercel.app`, puis domaine `assiettly.fr`).
+Problèmes rencontrés et corrigés en cours de route :
+- **Build Vercel échouait** (`implicitly has an 'any' type` sur les résultats
+  Prisma) : `@prisma/client` n'était jamais régénéré après un install propre
+  dans ce monorepo pnpm. Fix : `"postinstall": "prisma generate"` dans
+  `apps/web/package.json`.
+- **Connexion Postgres directe (port 5432, `db.<ref>.supabase.co`) instable
+  depuis les fonctions serverless Vercel** : basculé sur le pooler Supavisor
+  de Supabase — `DATABASE_URL` (pooler transaction-mode, port 6543,
+  `pgbouncer=true`) pour les requêtes à l'exécution, `DIRECT_URL` (pooler
+  session-mode, port 5432) pour les migrations Prisma. Ajout de
+  `directUrl = env("DIRECT_URL")` dans `schema.prisma`.
+- Domaine `assiettly.fr` connecté sur Vercel, `www` redirigé vers l'apex.
+  `NEXT_PUBLIC_APP_URL`, l'URL du webhook Stripe et le "Site URL"/"Redirect
+  URLs" de Supabase Auth mis à jour en conséquence.
+
+## Rappels de flamme par e-mail (Resend)
+
+Ajout d'un envoi quotidien automatique : chaque profil dont la flamme est
+allumée (`streakSummary.streakActuel > 0`) mais qui n'a encore loggé aucun
+repas dans la journée reçoit un e-mail "Ne perds pas ta flamme !".
+
+- `apps/web/emails/components/EmailLayout.tsx` : habillage commun aux
+  couleurs de la marque (corail/ivoire/charbon), réutilisable pour de
+  futurs e-mails (bienvenue, fin d'essai...).
+- `apps/web/emails/RappelFlamme.tsx` : template du rappel, construit avec
+  React Email (`@react-email/components`).
+- `apps/web/src/app/api/cron/streak-reminders/route.ts` : route protégée
+  par `CRON_SECRET` (vérifié contre l'en-tête `Authorization` que Vercel
+  Cron ajoute automatiquement), interroge Prisma pour trouver les profils
+  concernés, envoie via Resend (`src/lib/resend.ts`).
+- `apps/web/vercel.json` : déclare le cron (`0 18 * * *`, soit ~19h/20h
+  heure française), compatible avec les limites du plan Vercel Hobby (une
+  exécution par jour).
+- Rendu vérifié localement (`@react-email/render` + capture d'écran) avant
+  de livrer — voir l'aperçu envoyé dans la conversation.
+
+À faire côté services externes (utilisateur) : créer un compte Resend,
+vérifier le domaine `assiettly.fr` (DNS DKIM/SPF fournis par Resend), et
+renseigner `RESEND_API_KEY` / `RESEND_FROM_EMAIL` / `CRON_SECRET` sur Vercel.
+
 ## Prochaines étapes suggérées
 
-1. Créer le projet Supabase + Stripe réels et renseigner les `.env`
-2. Tester le parcours complet en conditions réelles (hors de ce bac à sable)
-3. Intégrer l'IA vision (scan photo) avec l'API Claude
-4. Notification de rappel de streak en fin de journée (à définir : cron +
-   email, ou push si un futur companion mobile est envisagé)
-5. Animation de célébration des paliers de badges à l'ouverture de l'app
-6. CGU / politique de confidentialité / endpoints export-suppression RGPD
-7. Connexion Google / Apple via Supabase Auth
+1. Vérifier le domaine `assiettly.fr` sur Resend et renseigner les clés
+2. Intégrer l'IA vision (scan photo) avec l'API Claude
+3. Étendre les e-mails Resend : bienvenue à l'inscription, fin d'essai Stripe
+   proche, célébration d'un palier de badge atteint
+4. Animation de célébration des paliers de badges à l'ouverture de l'app
+5. CGU / politique de confidentialité / endpoints export-suppression RGPD
+6. Connexion Google / Apple via Supabase Auth

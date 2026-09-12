@@ -28,6 +28,9 @@ packages/
   comme base de données de départ, avec cache local en base au premier scan.
 - **IA vision (scan photo de repas)** : prévue via l'API Claude (Anthropic),
   non implémentée dans ce MVP (voir PROGRESS.md).
+- **E-mails transactionnels** : [Resend](https://resend.com) + templates
+  [React Email](https://react.email) aux couleurs de la marque — rappel
+  quotidien envoyé (via un cron Vercel) à qui risque de perdre sa flamme.
 
 Voir [PROGRESS.md](./PROGRESS.md) pour le détail des décisions et l'avancement.
 
@@ -73,15 +76,32 @@ pnpm install
 2. Crée un endpoint de webhook pointant vers `<NEXT_PUBLIC_APP_URL>/api/webhooks/stripe`,
    écoutant `customer.subscription.created|updated|deleted`.
 
-### 4. Configurer et lancer l'app
+### 4. Configurer Resend (rappels de flamme par e-mail)
+
+1. Crée un compte sur [resend.com](https://resend.com), récupère une clé API.
+2. Ajoute et vérifie ton domaine d'envoi (DNS DKIM/SPF fournis par Resend).
+3. Choisis un `CRON_SECRET` (chaîne aléatoire) — Vercel Cron l'enverra
+   automatiquement dans l'en-tête `Authorization` pour protéger la route.
+
+### 5. Configurer et lancer l'app
 
 ```bash
 cp apps/web/.env.example apps/web/.env
-# renseigner DATABASE_URL, NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY,
-# STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, STRIPE_PRICE_ID_*, NEXT_PUBLIC_APP_URL
+# renseigner DATABASE_URL, DIRECT_URL, NEXT_PUBLIC_SUPABASE_URL,
+# NEXT_PUBLIC_SUPABASE_ANON_KEY, STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET,
+# STRIPE_PRICE_ID_*, NEXT_PUBLIC_APP_URL, RESEND_API_KEY, RESEND_FROM_EMAIL,
+# CRON_SECRET
 
 pnpm --filter @assiettly/web prisma:migrate   # crée les tables
 pnpm --filter @assiettly/web dev              # démarre sur http://localhost:3000
+```
+
+Le cron des rappels de flamme (`apps/web/vercel.json`) ne tourne
+automatiquement qu'une fois déployé sur Vercel. En local, teste-le
+directement :
+
+```bash
+curl -H "Authorization: Bearer $CRON_SECRET" http://localhost:3000/api/cron/streak-reminders
 ```
 
 ## Scripts utiles
@@ -110,13 +130,13 @@ pnpm --filter @assiettly/web dev              # démarre sur http://localhost:30
 - Suivi de poids avec graphique de tendance
 - Système de flamme : calcul quotidien, freeze (2/mois), paliers de badges
   (7/30/100/365 jours), **écran calendrier mensuel** dédié
+- **Rappel quotidien par e-mail** (Resend) si la flamme est en danger
 
 ## Non implémenté dans ce MVP (prévu ensuite)
 
 - Scan de repas par photo (IA vision — API Claude/Anthropic prévue)
 - Connexion Google / Apple (actuellement email/mot de passe uniquement)
 - Scanner de code-barres via la caméra (saisie manuelle du code pour l'instant)
-- Notification de rappel en fin de journée si le streak est en danger
 - Animation de célébration des paliers de badges à l'ouverture de l'app
 - Fonctionnalités sociales (classement, défis — V2)
 
