@@ -53,7 +53,7 @@ function AppTabs() {
 
 export function RootNavigator() {
   const { session, loading: authLoading } = useAuth();
-  const { profile, loading: profileLoading, refresh } = useProfile();
+  const { profile, loading: profileLoading, refresh } = useProfile(Boolean(session));
 
   if (authLoading || (session && profileLoading)) {
     return (

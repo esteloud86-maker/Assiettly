@@ -70,6 +70,13 @@ Scanne le QR code avec l'app **Expo Go** (iOS/Android) ou lance un simulateur.
 > Sur un appareil physique, `EXPO_PUBLIC_API_URL` doit pointer vers une adresse
 > accessible depuis le téléphone (IP locale de ta machine, pas `localhost`).
 
+Tu peux aussi lancer l'app dans un navigateur (pratique pour un aperçu rapide,
+sans Expo Go) :
+
+```bash
+pnpm --filter @assiettly/mobile web
+```
+
 ## Scripts utiles
 
 | Commande | Description |

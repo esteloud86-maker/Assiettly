@@ -75,6 +75,34 @@ via `/streaks/calendar`, il manque l'écran).
 
 Vérifié : `pnpm typecheck` passe sans erreur sur le package mobile.
 
+## Étape 5 — Vérification end-to-end du parcours MVP
+
+Parcours testé de bout en bout (connexion → onboarding → calcul d'objectifs →
+ajout de repas → mise à jour de la flamme → suivi de poids), via un projet
+Supabase réel (créé pour ce test, région `eu-west-3`) et une base Postgres
+locale pour l'API. Ce test a fait remonter et corriger deux bugs réels :
+
+- **`apps/mobile/src/api/client.ts`** : le client envoyait toujours
+  `Content-Type: application/json` même sans corps de requête, ce qui faisait
+  échouer les endpoints appelés sans body (ex. `POST /me/goals/calculate`)
+  avec une erreur 400 côté Fastify (`Body cannot be empty when content-type
+  is set to 'application/json'`). Corrigé : l'en-tête n'est posé que si un
+  corps est effectivement envoyé.
+- **`apps/mobile/src/hooks/useProfile.ts`** : le profil n'était chargé qu'au
+  premier montage du hook, sans se re-déclencher après la connexion — un
+  utilisateur qui se connectait après un premier rendu non authentifié
+  restait bloqué avec `profile = null`. Corrigé : le hook prend maintenant un
+  paramètre `enabled` (branché sur la présence de session) et recharge le
+  profil à chaque passage de `false` à `true`.
+
+Ajouts d'outillage nécessaires pour faire tourner l'app dans un navigateur
+(utile pour des previews rapides sans Expo Go) :
+`apps/mobile/index.js` (point d'entrée explicite, `main` mis à jour en
+conséquence), `apps/mobile/metro.config.js` (watchFolders + symlinks pour le
+monorepo pnpm), et les dépendances `react-dom`, `react-native-web`,
+`@expo/metro-runtime`, `@babel/runtime` (ce dernier ajouté aussi à la racine,
+Metro ne le trouvant pas nativement dans la structure pnpm sans ça).
+
 ## Prochaines étapes suggérées
 
 1. Créer le projet Supabase et renseigner les `.env` (voir README)

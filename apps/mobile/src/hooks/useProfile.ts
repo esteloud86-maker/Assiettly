@@ -36,23 +36,29 @@ export function estOnboardingComplet(profile: Profile | null): boolean {
   );
 }
 
-export function useProfile() {
+export function useProfile(enabled: boolean) {
   const [profile, setProfile] = useState<Profile | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(enabled);
 
   const refresh = useCallback(async () => {
     setLoading(true);
     try {
       const data = await api.get<Profile>("/me");
       setProfile(data);
+    } catch {
+      setProfile(null);
     } finally {
       setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    refresh();
-  }, [refresh]);
+    if (enabled) {
+      refresh();
+    } else {
+      setProfile(null);
+    }
+  }, [enabled, refresh]);
 
   return { profile, loading, refresh };
 }

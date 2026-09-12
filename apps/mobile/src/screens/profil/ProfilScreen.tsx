@@ -10,7 +10,7 @@ const LIBELLES_OBJECTIF: Record<string, string> = {
 
 export function ProfilScreen() {
   const { session, signOut } = useAuth();
-  const { profile } = useProfile();
+  const { profile } = useProfile(Boolean(session));
 
   return (
     <ScrollView style={styles.container}>

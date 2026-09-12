@@ -19,7 +19,7 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const res = await fetch(`${API_URL}${path}`, {
     ...options,
     headers: {
-      "Content-Type": "application/json",
+      ...(options.body ? { "Content-Type": "application/json" } : {}),
       ...(session ? { Authorization: `Bearer ${session.access_token}` } : {}),
       ...options.headers,
     },
