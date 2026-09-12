@@ -16,11 +16,11 @@ export default async function JournalPage() {
     <div className="space-y-6">
       <div>
         <h1 className="font-titre text-2xl font-semibold text-charbon-800">Journal du jour</h1>
-        <p className="text-charbon-400">{Math.round(totaux.caloriesKcal)} kcal loggées</p>
+        <p className="text-charbon-400">{Math.round(totaux.caloriesKcal)} kcal enregistrées</p>
       </div>
 
       {meals.length === 0 ? (
-        <p className="text-charbon-400">Aucun repas loggé pour l&rsquo;instant.</p>
+        <p className="text-charbon-400">Aucun repas ajouté pour l&rsquo;instant.</p>
       ) : (
         <div className="space-y-3">
           {meals.map((meal) => (

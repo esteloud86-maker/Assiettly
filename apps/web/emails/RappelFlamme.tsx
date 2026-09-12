@@ -17,11 +17,11 @@ export function RappelFlamme({ prenom, streakActuel }: RappelFlammeProps) {
         {salutation} ta flamme est en danger 🔥
       </Heading>
       <Text style={{ fontSize: 15, color: "#463C36", lineHeight: 1.5, margin: "0 0 12px" }}>
-        Tu n&rsquo;as pas encore loggé de repas aujourd&rsquo;hui, et ta série de{" "}
+        Tu n&rsquo;as pas encore ajouté de repas aujourd&rsquo;hui, et ta série de{" "}
         <strong>{jours}</strong> risque de s&rsquo;arrêter ce soir.
       </Text>
       <Text style={{ fontSize: 15, color: "#463C36", lineHeight: 1.5, margin: 0 }}>
-        Un seul repas loggé avant minuit suffit pour la garder allumée.
+        Un seul repas ajouté avant minuit suffit pour la garder allumée.
       </Text>
       <Section style={{ textAlign: "center", margin: "28px 0 8px" }}>
         <Button
@@ -36,7 +36,7 @@ export function RappelFlamme({ prenom, streakActuel }: RappelFlammeProps) {
             textDecoration: "none",
           }}
         >
-          Logger un repas maintenant
+          Ajouter un repas maintenant
         </Button>
       </Section>
     </EmailLayout>

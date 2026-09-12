@@ -4,15 +4,15 @@ export interface EvaluationJourInput {
   caloriesJour: number;
   objectifCaloriesKcal: number;
   tolerancePct: number;
-  aAuMoinsUnRepasLogge: boolean;
+  aAuMoinsUnRepasAjoute: boolean;
 }
 
 /**
- * Une flamme s'allume si au moins un repas a été loggé ET que les calories
+ * Une flamme s'allume si au moins un repas a été ajouté ET que les calories
  * du jour sont dans la fourchette [objectif - tolérance%, objectif + tolérance%].
  */
 export function evaluerObjectifJour(input: EvaluationJourInput): boolean {
-  if (!input.aAuMoinsUnRepasLogge) return false;
+  if (!input.aAuMoinsUnRepasAjoute) return false;
   const marge = input.objectifCaloriesKcal * (input.tolerancePct / 100);
   const borneBasse = input.objectifCaloriesKcal - marge;
   const borneHaute = input.objectifCaloriesKcal + marge;

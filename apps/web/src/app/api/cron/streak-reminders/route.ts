@@ -10,7 +10,7 @@ export const maxDuration = 60;
 /**
  * Appelé une fois par jour par Vercel Cron (voir vercel.json). Envoie un
  * rappel à chaque profil dont la flamme est allumée mais qui n'a encore
- * loggé aucun repas aujourd'hui.
+ * ajouté aucun repas aujourd'hui.
  */
 export async function GET(request: Request) {
   const authHeader = request.headers.get("authorization");

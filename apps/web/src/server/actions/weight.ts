@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireProfile } from "@/server/auth";
 
-export async function loggerPoids(input: { poidsKg: number; date: string }) {
+export async function enregistrerPoids(input: { poidsKg: number; date: string }) {
   const data = createWeightLogSchema.parse(input);
   const profile = await requireProfile();
 

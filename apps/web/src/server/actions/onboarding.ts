@@ -19,7 +19,7 @@ export interface OnboardingInput {
 
 /**
  * Finalise l'onboarding : enregistre le profil physique, le premier poids
- * loggé, calcule et active l'objectif calorique, puis redirige vers le
+ * saisi, calcule et active l'objectif calorique, puis redirige vers le
  * paywall (essai gratuit avant le tableau de bord).
  */
 export async function terminerOnboarding(input: OnboardingInput) {

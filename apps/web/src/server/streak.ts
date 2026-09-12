@@ -12,7 +12,7 @@ function toDateOnly(date: Date): string {
 
 /**
  * Recalcule le jour de streak (flamme allumée ou non) pour une date donnée,
- * à partir des repas déjà loggés ce jour-là, puis met à jour le résumé de
+ * à partir des repas déjà ajoutés ce jour-là, puis met à jour le résumé de
  * streak du profil (streak actuel / max). À appeler après chaque
  * création/suppression de repas.
  */
@@ -35,14 +35,14 @@ export async function recomputerStreakPourJour(profileId: string, date: Date): P
     (total, meal) => total + meal.items.reduce((s, item) => s + Number(item.caloriesKcal), 0),
     0,
   );
-  const aAuMoinsUnRepasLogge = meals.length > 0;
+  const aAuMoinsUnRepasAjoute = meals.length > 0;
 
   const objectifRespecte = goal
     ? evaluerObjectifJour({
         caloriesJour,
         objectifCaloriesKcal: goal.objectifCaloriesKcal,
         tolerancePct: goal.tolerancePct,
-        aAuMoinsUnRepasLogge,
+        aAuMoinsUnRepasAjoute,
       })
     : false;
 

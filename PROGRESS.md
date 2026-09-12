@@ -128,7 +128,7 @@ Problèmes rencontrés et corrigés en cours de route :
 ## Rappels de flamme par e-mail (Resend)
 
 Ajout d'un envoi quotidien automatique : chaque profil dont la flamme est
-allumée (`streakSummary.streakActuel > 0`) mais qui n'a encore loggé aucun
+allumée (`streakSummary.streakActuel > 0`) mais qui n'a encore ajouté aucun
 repas dans la journée reçoit un e-mail "Ne perds pas ta flamme !".
 
 - `apps/web/emails/components/EmailLayout.tsx` : habillage commun aux

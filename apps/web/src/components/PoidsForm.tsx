@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { loggerPoids } from "@/server/actions/weight";
+import { enregistrerPoids } from "@/server/actions/weight";
 
 export function PoidsForm() {
   const router = useRouter();
@@ -13,7 +13,7 @@ export function PoidsForm() {
     const poidsKg = Number(valeur.replace(",", "."));
     if (!poidsKg || poidsKg <= 0) return;
     startTransition(async () => {
-      await loggerPoids({ poidsKg, date: new Date().toISOString().slice(0, 10) });
+      await enregistrerPoids({ poidsKg, date: new Date().toISOString().slice(0, 10) });
       setValeur("");
       router.refresh();
     });
