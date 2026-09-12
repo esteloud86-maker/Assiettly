@@ -13,7 +13,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="fr" className={`${fredoka.variable} ${inter.variable}`}>
+    <html lang="fr" className={`${fredoka.variable} ${inter.variable} scroll-smooth`}>
       <body>{children}</body>
     </html>
   );

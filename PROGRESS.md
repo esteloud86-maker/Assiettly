@@ -351,21 +351,126 @@ portion (recalcul immédiat des calories et de la flamme du jour), écran
 Progrès (poids, série, graphique, calendrier), menu d'action rapide et
 démo du scan ont tous été vérifiés visuellement.
 
+## Landing page publique et authentification
+
+Avant, `/` redirigeait un visiteur non connecté vers un écran minimal
+("Assiettly" + un CTA). Il y a maintenant une vraie landing marketing
+publique, avec inscription/connexion étendues (OAuth, mot de passe oublié).
+
+**Routing** : pas de renommage sous `/app/*` — la structure plate existante
+(`/accueil`, `/progres`, etc.) sert déjà de zone applicative, et le
+middleware protège tout par défaut sauf une liste blanche explicite de
+routes publiques (`/`, `/connexion`, `/inscription`,
+`/mot-de-passe-oublie`, `/reinitialiser-mot-de-passe`, `/auth/callback`,
+les 3 pages légales, `/api/webhooks`). Un visiteur non connecté sur une
+route protégée est redirigé vers `/connexion` (comportement déjà en place,
+inchangé). Un utilisateur connecté qui arrive sur `/` est automatiquement
+redirigé vers `/accueil` (vérification de session côté serveur, avant tout
+rendu de la landing).
+
+**Structure de la landing** (`apps/web/src/components/landing/`) :
+`HeaderLanding` (+ `MenuMobile`, seul îlot client de la page, pour le menu
+hamburger), `Hero` (+ `MockupDashboard`), `Fonctionnalites`, `SocialProof`,
+`Tarifs`, `FooterLanding` — assemblés dans `src/app/page.tsx`, qui reste un
+Server Component (le check de session + redirect utilise le client Supabase
+serveur, comme avant).
+
+**Choix de différenciation du hero** : titre qui tranche sur la cuisine
+française reconnue nativement ("Le seul suivi alimentaire qui reconnaît
+vraiment la cuisine française"), sous-titre qui appuie sur la mécanique de
+la flamme pour la rétention — les deux angles proposés dans le brief,
+combinés plutôt que choisis, sans repartir sur un titre générique de
+catégorie ("Suivez votre alimentation").
+
+**Visuel du hero** : `MockupDashboard` est un composant SVG/CSS pur (anneau
+calorique + badge flamme + barres macro, mêmes composants visuels que le
+vrai dashboard) plutôt qu'une image — zéro poids réseau, dimensions
+explicites, aucun décalage de mise en page au chargement. Ça règle
+directement l'exigence de performance sur le hero sans avoir à produire et
+optimiser un fichier WebP/AVIF.
+
+**Réassurance (`SocialProof`)** : pas de faux chiffres/témoignages. Un
+chiffre inventé "à remplacer plus tard" reste presque toujours en prod, ce
+qui est un vrai risque de confiance et de conformité (publicité
+mensongère) une fois l'app publique. En attendant de vraies données, le
+composant affiche deux réassurances factuelles et vérifiables dès
+aujourd'hui : hébergement des données en UE (le projet Supabase tourne déjà
+en `eu-west-3`, Paris — donc l'affirmation est vraie, pas une promesse en
+l'air) et le positionnement "cuisine française" (vérifiable sur la base
+alimentaire elle-même). Le composant a un flag interne
+(`AFFICHER_CHIFFRES_REELS`) et des tableaux `STATS`/`TEMOIGNAGES` vides :
+le jour où de vraies données existent, il suffit de les remplir et de
+passer le flag à `true` — le même gabarit visuel (`CarteReassurance`) est
+réutilisé dans les deux cas, donc rien à redessiner.
+
+**Tarifs** : mêmes chiffres que `/paywall` (0€ / 6,99€ mois / 49,99€ an,
+mêmes avantages Premium) pour ne pas avoir deux sources de vérité sur le
+prix. Les deux CTA renvoient vers `/inscription`, jamais vers un paiement
+direct — le paywall n'intervient qu'après l'onboarding complet, une fois
+que la personne a vu le calcul personnalisé de ses besoins, jamais avant
+d'avoir créé un compte.
+
+**Footer** : liens légaux (mentions légales, CGU, confidentialité) vers des
+pages stub honnêtes ("cette page sera complétée avant le lancement public")
+plutôt que du texte juridique inventé — un vrai CGU/mentions légales doit
+être rédigé par quelqu'un de qualifié, pas généré. Pas de liens réseaux
+sociaux : Assiettly n'a pas encore de comptes Instagram/TikTok confirmés,
+et fabriquer des liens vers des comptes qui n'existent peut-être pas serait
+pire qu'une section absente.
+
+**Inscription / connexion** : ajout des boutons "Continuer avec
+Google/Apple" (`supabase.auth.signInWithOAuth`, composant partagé
+`BoutonsOAuth`) sur les deux écrans, lien "Mot de passe oublié" sur
+`/connexion`, micro-texte "Sans carte bancaire · Prêt en 2 minutes" sur
+l'inscription. Nouveau point d'échange `src/app/auth/callback/route.ts` :
+un seul `route.ts` gère l'échange de code pour l'OAuth Google/Apple *et*
+pour les liens "mot de passe oublié"/confirmation d'e-mail Supabase (tous
+utilisent le même mécanisme PKCE `exchangeCodeForSession`), avec un
+paramètre `next` pour rediriger au bon endroit ensuite.
+
+**Mot de passe oublié** : `/mot-de-passe-oublie` (demande de lien) →
+e-mail Supabase (déjà avec le template de marque créé précédemment) →
+`/auth/callback?next=/reinitialiser-mot-de-passe` → `/reinitialiser-mot-de-passe`
+(nouveau mot de passe via `supabase.auth.updateUser`).
+
+**Redirection post-authentification** : la logique "onboarding non terminé
+→ questionnaire, sinon → dashboard" existait déjà dans `(app)/layout.tsx`
+(vérifie `profile.onboardingTermine`) — connexion et inscription (avec
+session immédiate) poussent simplement vers `/accueil`/`/onboarding` et ce
+layout fait le reste, pas de logique dupliquée à écrire.
+
+**À faire côté Supabase avant que les boutons Google/Apple fonctionnent
+réellement** : les fournisseurs OAuth Google et Apple ne sont pas encore
+activés dans le dashboard Supabase (Authentication → Providers) — sans ça,
+cliquer sur ces boutons renverra une erreur "provider not enabled" (gérée
+proprement, affichée à l'utilisateur, pas de crash). Il faudra créer les
+identifiants OAuth (Google Cloud Console / Apple Developer) et les
+renseigner dans Supabase avant le lancement public.
+
+**Vérification** : `pnpm typecheck` + `pnpm build` propres. Landing testée
+visuellement en mobile (400px) et desktop (1280px) : hero, 4 blocs
+fonctionnalités, réassurance, tarifs, footer, menu mobile ; écrans
+connexion/inscription/mot de passe oublié avec les boutons OAuth.
+
 ## Prochaines étapes suggérées
 
-1. Vérifier le domaine `assiettly.fr` sur Resend et renseigner les clés
-2. Intégrer l'IA vision (scan photo) avec l'API Claude — brancher sur
+1. Activer les fournisseurs Google et Apple dans Supabase Auth (Authentication
+   → Providers) pour que les boutons OAuth de connexion/inscription
+   fonctionnent réellement
+2. Vérifier le domaine `assiettly.fr` sur Resend et renseigner les clés
+3. Intégrer l'IA vision (scan photo) avec l'API Claude — brancher sur
    `EcranScanMock` (remplacer la démo par un vrai flux caméra + upload +
    détection) et sur l'écran de détail nutritionnel (vraie photo, bouton
    "Corriger" fonctionnel)
-3. Implémenter les Groupes (V2) : création/invitation, classement par
+4. Implémenter les Groupes (V2) : création/invitation, classement par
    streak persistant, réactions et commentaires — remplacer
    `FluxGroupesMock` par de vraies données
-4. Écran "Avant / Après" dans le Profil (comparaison de deux photos +
+5. Écran "Avant / Après" dans le Profil (comparaison de deux photos +
    poids/date, option masquer le poids, partage) — évoqué dans le brief du
    dashboard comme piste à évaluer, pas encore construit
-5. Étendre les e-mails Resend : bienvenue à l'inscription, fin d'essai Stripe
+6. Étendre les e-mails Resend : bienvenue à l'inscription, fin d'essai Stripe
    proche, célébration d'un palier de badge atteint
-6. Animation de célébration des paliers de badges à l'ouverture de l'app
-7. CGU / politique de confidentialité / endpoints export-suppression RGPD
-8. Connexion Google / Apple via Supabase Auth
+7. Animation de célébration des paliers de badges à l'ouverture de l'app
+8. Rédiger les vraies pages légales (CGU, confidentialité, mentions
+   légales — actuellement des placeholders) et les endpoints
+   export/suppression de données RGPD

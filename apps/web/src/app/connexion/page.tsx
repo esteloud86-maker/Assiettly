@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { BoutonsOAuth } from "@/components/auth/BoutonsOAuth";
 import { createClient } from "@/lib/supabase/client";
 
 export default function ConnexionPage() {
@@ -23,44 +24,63 @@ export default function ConnexionPage() {
       setErreur(error.message);
       return;
     }
+    // (app)/layout.tsx redirige lui-même vers /onboarding si le questionnaire n'est pas terminé.
     router.push("/accueil");
     router.refresh();
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-creme-100 px-4">
-      <form onSubmit={seConnecter} className="w-full max-w-sm space-y-4">
-        <div className="mb-6 text-center">
-          <h1 className="font-titre text-3xl font-bold text-charbon-800">Assiettly</h1>
-          <p className="mt-1 text-charbon-400">Suis ton alimentation, sans jamais culpabiliser.</p>
+    <div className="flex min-h-screen items-center justify-center bg-creme-100 px-4 py-10">
+      <div className="w-full max-w-sm space-y-5">
+        <div className="text-center">
+          <Link href="/" className="font-titre text-3xl font-bold text-charbon-800">
+            Assiettly
+          </Link>
+          <p className="mt-1 text-charbon-400">Content de te revoir 👋</p>
         </div>
 
-        <input
-          className="w-full rounded-xl border border-creme-200 bg-creme-50 p-3.5"
-          placeholder="Adresse e-mail"
-          type="email"
-          autoComplete="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-        />
-        <input
-          className="w-full rounded-xl border border-creme-200 bg-creme-50 p-3.5"
-          placeholder="Mot de passe"
-          type="password"
-          autoComplete="current-password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-        />
+        <BoutonsOAuth />
 
-        {erreur ? <p className="text-center text-corail-600">{erreur}</p> : null}
+        <div className="flex items-center gap-3 text-xs text-charbon-400">
+          <div className="h-px flex-1 bg-creme-200" />
+          ou avec ton e-mail
+          <div className="h-px flex-1 bg-creme-200" />
+        </div>
 
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full rounded-xl bg-corail-500 py-3.5 font-titre font-semibold text-white disabled:opacity-50"
-        >
-          {loading ? "Connexion..." : "Se connecter"}
-        </button>
+        <form onSubmit={seConnecter} className="space-y-4">
+          <input
+            className="w-full rounded-xl border border-creme-200 bg-creme-50 p-3.5"
+            placeholder="Adresse e-mail"
+            type="email"
+            autoComplete="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
+          <input
+            className="w-full rounded-xl border border-creme-200 bg-creme-50 p-3.5"
+            placeholder="Mot de passe"
+            type="password"
+            autoComplete="current-password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+
+          <div className="text-right">
+            <Link href="/mot-de-passe-oublie" className="text-sm font-medium text-corail-600">
+              Mot de passe oublié ?
+            </Link>
+          </div>
+
+          {erreur ? <p className="text-center text-corail-600">{erreur}</p> : null}
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full rounded-xl bg-corail-500 py-3.5 font-titre font-semibold text-white disabled:opacity-50"
+          >
+            {loading ? "Connexion..." : "Se connecter"}
+          </button>
+        </form>
 
         <p className="text-center text-sm text-charbon-400">
           Pas encore de compte ?{" "}
@@ -68,7 +88,7 @@ export default function ConnexionPage() {
             Créer un compte
           </Link>
         </p>
-      </form>
+      </div>
     </div>
   );
 }

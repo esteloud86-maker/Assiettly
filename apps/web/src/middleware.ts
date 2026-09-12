@@ -3,7 +3,18 @@ import { NextResponse, type NextRequest } from "next/server";
 
 type CookieToSet = { name: string; value: string; options: CookieOptions };
 
-const ROUTES_PUBLIQUES = ["/connexion", "/inscription", "/", "/api/webhooks"];
+const ROUTES_PUBLIQUES = [
+  "/",
+  "/connexion",
+  "/inscription",
+  "/mot-de-passe-oublie",
+  "/reinitialiser-mot-de-passe",
+  "/auth/callback",
+  "/mentions-legales",
+  "/cgu",
+  "/confidentialite",
+  "/api/webhooks",
+];
 
 export async function middleware(request: NextRequest) {
   let response = NextResponse.next({ request });

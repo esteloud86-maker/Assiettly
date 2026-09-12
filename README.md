@@ -127,7 +127,14 @@ curl -H "Authorization: Bearer $CRON_SECRET" http://localhost:3000/api/cron/stre
 
 ## Fonctionnalités du MVP actuel
 
-- Authentification (email / mot de passe via Supabase Auth)
+- **Landing page publique** (`/`) : hero différenciant (cuisine française +
+  mécanique de flamme), fonctionnalités clés, réassurance factuelle
+  (composant `SocialProof` togglable, sans faux chiffres/témoignages),
+  tarifs, footer — pensée pour un premier rendu rapide (SSR, mockup du
+  dashboard en SVG/CSS sans image à charger)
+- **Authentification** (Supabase Auth) : email/mot de passe, connexion
+  rapide Google/Apple, mot de passe oublié — redirection automatique vers
+  l'onboarding ou le dashboard selon l'état du compte
 - **Onboarding en 13 écrans** (une question par écran, barre de progression,
   pickers à molette natifs pour les valeurs numériques et la date de
   naissance) : sexe, date de naissance, niveau d'activité, taille, poids
