@@ -3,7 +3,11 @@ import type {
   NiveauActivite,
   ObjectifType,
   ProfilPhysique,
+  ProjectionObjectif,
 } from "./types";
+
+/** Équivalence calorique conventionnelle d'1 kg de masse grasse. */
+const KCAL_PAR_KG = 7700;
 
 const FACTEURS_ACTIVITE: Record<NiveauActivite, number> = {
   SEDENTAIRE: 1.2,
@@ -55,4 +59,29 @@ export function calculerObjectifs(profil: ProfilPhysique): MacroTargets {
   const lipidesG = Math.round((caloriesKcal * 0.3) / 9);
 
   return { caloriesKcal, proteinesG, glucidesG, lipidesG };
+}
+
+/**
+ * Estime la date d'atteinte du poids cible, à partir de l'écart de poids et
+ * du déficit/surplus calorique quotidien impliqué par l'objectif choisi.
+ * Retourne `null` si l'objectif est "maintien" ou si le poids cible est égal
+ * au poids actuel (aucune projection pertinente).
+ */
+export function calculerProjection(
+  profil: ProfilPhysique,
+  poidsCibleKg: number,
+  aujourdHui = new Date(),
+): ProjectionObjectif {
+  const ecartKg = Math.abs(profil.poidsKg - poidsCibleKg);
+  const ajustementQuotidien = Math.abs(AJUSTEMENT_OBJECTIF_KCAL[profil.objectifType]);
+
+  if (profil.objectifType === "MAINTIEN" || ecartKg < 0.1 || ajustementQuotidien === 0) {
+    return { joursEstimes: null, dateEstimee: null };
+  }
+
+  const joursEstimes = Math.round((ecartKg * KCAL_PAR_KG) / ajustementQuotidien);
+  const dateEstimee = new Date(aujourdHui);
+  dateEstimee.setDate(dateEstimee.getDate() + joursEstimes);
+
+  return { joursEstimes, dateEstimee: dateEstimee.toISOString().slice(0, 10) };
 }

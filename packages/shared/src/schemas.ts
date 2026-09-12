@@ -20,13 +20,27 @@ export const profilPhysiqueSchema = z.object({
   objectifType: objectifTypeSchema,
 });
 
+export const onboardingSchema = z.object({
+  objectifType: objectifTypeSchema,
+  sexe: sexeSchema,
+  dateNaissance: z.string().date(),
+  tailleCm: z.number().int().min(50).max(250),
+  poidsKg: z.number().min(20).max(400),
+  poidsCibleKg: z.number().min(20).max(400),
+  niveauActivite: niveauActiviteSchema,
+  frequenceSportParSemaine: z.number().int().min(0).max(14),
+});
+
 export const updateProfileSchema = z.object({
   nom: z.string().min(1).max(120).optional(),
   sexe: sexeSchema.optional(),
   dateNaissance: z.string().date().optional(),
   tailleCm: z.number().int().min(50).max(250).optional(),
+  poidsCibleKg: z.number().min(20).max(400).optional(),
   niveauActivite: niveauActiviteSchema.optional(),
+  frequenceSportParSemaine: z.number().int().min(0).max(14).optional(),
   objectifType: objectifTypeSchema.optional(),
+  onboardingTermine: z.boolean().optional(),
 });
 
 export const createWeightLogSchema = z.object({

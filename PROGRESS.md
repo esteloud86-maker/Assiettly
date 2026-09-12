@@ -1,116 +1,119 @@
 # Journal de progression — Assiettly
 
-## Décisions d'architecture (validées avec l'utilisateur)
+## Pivot majeur — Assiettly est un SaaS web, pas une app mobile
+
+Après le premier MVP (React Native/Expo + API Fastify séparée, voir
+l'historique git), le brief a été précisé : **Assiettly est un SaaS web**,
+pas une app mobile — paiement Stripe, déploiement Vercel, Supabase pour
+auth/DB, API Claude prévue pour l'IA vision. En conséquence :
+
+- `apps/mobile` (Expo/React Native) et `apps/api` (Fastify) ont été
+  **retirés**.
+- Remplacés par `apps/web`, une app **Next.js 14 (App Router)** unique :
+  Server Components pour l'affichage, **Server Actions** pour les mutations
+  (plus besoin d'API REST séparée), Prisma pour l'accès à la base Supabase.
+- `packages/shared` (calcul nutritionnel, logique de streak, schémas zod)
+  est conservé tel quel — c'est la logique métier, indépendante du frontend.
+
+## Décisions produit (validées avec l'utilisateur)
 
 | Sujet | Choix |
 |---|---|
-| Frontend mobile | React Native + Expo |
-| Backend | Node.js/TypeScript + Fastify + Prisma |
-| Auth & DB managée | Supabase (Auth + Postgres, région UE) |
-| Structure du repo | Monorepo pnpm (`apps/*`, `packages/*`) |
-| Base alimentaire emballée | Open Food Facts, mise en cache locale au premier scan |
-| IA vision (scan photo) | Différée en V2, hors du MVP |
+| Type de produit | SaaS web (pas mobile) |
+| Frontend/Backend | Next.js App Router sur Vercel (remplace Fastify) |
+| Paiement | Stripe Checkout, essai gratuit 7 jours carte requise |
+| Auth & DB | Supabase (inchangé) |
+| IA vision (futur) | API Claude (Anthropic) |
+| Identité de marque | Direction proposée par Claude (palette + typo ci-dessous) |
 
-## Étape 1 — Scaffolding du monorepo
+## Identité de marque Assiettly
 
-- `pnpm-workspace.yaml` + `package.json` racine (scripts `dev:api`, `dev:mobile`, `prisma:*`)
-- `.gitignore` couvrant node_modules, builds, `.env`, `.expo`
+Ton chaleureux, simple, motivant, jamais culpabilisant. Palette volontairement
+distincte des apps concurrentes (pas de rouge/orange "type CalAI" pur) :
+- **Corail** (`#F2603C`) : couleur d'action (boutons, flamme).
+- **Sarcelle** (`#1F7A6C`) : accent santé/fraîcheur (glucides, succès).
+- **Ambre** (`#F2953C`) : mécanique de la flamme (dégradé avec le corail).
+- **Ivoire chaud** (`#FBF4EC`) : fond, plus doux qu'un blanc pur.
+- **Typographie** : Fredoka (titres, arrondie) + Inter (corps de texte).
+- **Marque flamme** : icône SVG dessinée pour la marque (`FlammeIcon.tsx`),
+  pas un émoji — dégradé ambre → corail, forme arrondie.
 
-## Étape 2 — `packages/shared`
+## Architecture technique détaillée
 
-Logique métier partagée entre l'API et (à terme) le mobile, pour éviter toute
-divergence de calcul entre client et serveur :
+```
+apps/web/
+  prisma/schema.prisma   Profile, Goal, WeightLog, Food, Meal/MealItem,
+                          StreakDay/StreakSummary, Subscription
+  src/
+    middleware.ts         Rafraîchit la session Supabase, protège les routes
+    lib/
+      supabase/client.ts  Client navigateur (composants client)
+      supabase/server.ts  Client serveur (Server Components/Actions)
+      prisma.ts           Instance Prisma partagée
+      stripe.ts           Instance Stripe
+    server/
+      auth.ts             getCurrentProfile / requireProfile
+      streak.ts           Recalcul de streak (port de l'ancienne API Fastify)
+      openFoodFacts.ts    Lookup code-barres (port identique)
+      billing.ts          estPremium(), durée d'essai
+      actions/            Server Actions : onboarding, meals, weight,
+                          streaks, billing (Stripe Checkout + portail)
+    app/
+      page.tsx             Landing
+      connexion, inscription   Auth (client, Supabase browser client)
+      onboarding/           Wizard multi-étapes (calcul instantané côté
+                            client via packages/shared, persistance via
+                            Server Action à la fin)
+      paywall/              Comparatif gratuit/premium + Stripe Checkout
+      (app)/                Route group protégée (layout avec header +
+                            badge flamme + nav) :
+        accueil/            Anneau de progression calorique + macros
+        journal/            Repas du jour + ajout (recherche/code-barres)
+        poids/               Suivi de poids + graphique SVG
+        streaks/calendrier/  Calendrier mensuel des flammes
+        profil/              Infos + gestion abonnement Stripe
+      api/webhooks/stripe/  Webhook (synchronise Subscription depuis Stripe)
+```
 
-- `nutrition.ts` : calcul du métabolisme de base (Mifflin-St Jeor), du TDEE
-  (facteur d'activité), et des objectifs caloriques/macros selon l'objectif
-  (perte/maintien/prise de masse). Répartition macro par défaut : 30% protéines
-  / 40% glucides / 30% lipides.
-- `streak.ts` : logique pure de calcul de streak — `evaluerObjectifJour` (une
-  flamme s'allume si ≥1 repas loggé ET calories dans la tolérance ±10% de
-  l'objectif), `calculerStreakSummary` (streak actuel/max à partir de
-  l'historique), paliers de badges (7/30/100/365 jours).
-- `schemas.ts` : validation zod des payloads API (profil, poids, aliments,
-  repas, freeze de streak).
+**Paiement** : `demarrerAbonnement` crée un client Stripe (si besoin) et une
+session Checkout avec `trial_period_days: 7` — la carte est demandée à
+l'inscription à l'essai mais n'est débitée qu'à la fin des 7 jours, conforme
+au choix validé. Le webhook Stripe synchronise le modèle `Subscription`
+(statut, dates) à chaque changement.
 
-## Étape 3 — `apps/api` (Fastify + Prisma)
+**Onboarding** : les calculs (Mifflin-St Jeor, macros, projection de date
+d'objectif) sont faits **côté client** en direct avec `packages/shared`
+pour un affichage instantané à chaque étape ; la persistance (profil,
+premier poids, objectif actif) se fait via une seule Server Action à la
+dernière étape, qui redirige ensuite vers `/paywall`.
 
-**Schéma de base de données** (`prisma/schema.prisma`) :
-`profiles` (lié à `auth.users` de Supabase via le même UUID), `user_goals`,
-`weight_logs`, `foods`, `meals` + `meal_items`, `streak_days`,
-`streak_summaries`.
+## Vérification end-to-end
 
-**Auth** : plugin Fastify qui vérifie le JWT Supabase (HS256, `jose`) et
-attache `request.auth.{profileId, email}` à chaque requête. Enveloppé avec
-`fastify-plugin` pour que le hook s'applique globalement à toutes les routes
-enregistrées sur l'instance (sinon l'encapsulation Fastify l'aurait limité au
-seul contexte du plugin).
+Le parcours complet a été testé avec un navigateur piloté automatiquement :
+inscription (bypass technique décrit ci-dessous) → onboarding en 8 étapes →
+écran de résultats → projection → paywall → dashboard avec anneau → ajout de
+repas (recherche + quantité ajustable) → flamme qui s'allume → calendrier →
+poids avec graphique. `next build` passe sans erreur (15 routes générées).
 
-**Routes** :
-- `GET/PUT /me`, `POST /me/goals/calculate` (calcule et active un nouvel objectif)
-- `GET/POST /weight`
-- `GET /foods/search`, `GET /foods/barcode/:code` (Open Food Facts + cache DB), `POST /foods`
-- `GET/POST/DELETE /meals` (journal du jour + totaux, recalcul du streak à chaque changement)
-- `GET /streaks/summary`, `GET /streaks/calendar`, `POST /streaks/freeze`
-
-**Simplification assumée** : le streak est recalculé à la volée à chaque
-ajout/suppression de repas, pas via un cron quotidien de fin de journée. Un
-jour non encore terminé n'est donc jamais compté comme "manqué" avant qu'un
-autre jour soit loggé — un cron de clôture à minuit serait une amélioration
-naturelle pour gérer les oublis complets (aucun repas du tout, aucun log qui
-déclenche un recalcul).
-
-Vérifié : `pnpm typecheck` passe sans erreur, `prisma generate` fonctionne.
-
-## Étape 4 — `apps/mobile` (Expo React Native)
-
-Écrans livrés : Connexion/Inscription (Supabase Auth), Onboarding (profil
-physique → calcul auto des objectifs), Accueil (flamme + progression du jour),
-Journal (repas du jour, ajout via recherche d'aliment ou code-barres saisi
-manuellement, suppression), Poids (graphique de tendance en SVG), Profil
-(déconnexion, rappel RGPD).
-
-Non couvert dans ce MVP : connexion Google/Apple, scan caméra du code-barres,
-scan photo IA, notifications push, écran calendrier mensuel (l'API existe déjà
-via `/streaks/calendar`, il manque l'écran).
-
-Vérifié : `pnpm typecheck` passe sans erreur sur le package mobile.
-
-## Étape 5 — Vérification end-to-end du parcours MVP
-
-Parcours testé de bout en bout (connexion → onboarding → calcul d'objectifs →
-ajout de repas → mise à jour de la flamme → suivi de poids), via un projet
-Supabase réel (créé pour ce test, région `eu-west-3`) et une base Postgres
-locale pour l'API. Ce test a fait remonter et corriger deux bugs réels :
-
-- **`apps/mobile/src/api/client.ts`** : le client envoyait toujours
-  `Content-Type: application/json` même sans corps de requête, ce qui faisait
-  échouer les endpoints appelés sans body (ex. `POST /me/goals/calculate`)
-  avec une erreur 400 côté Fastify (`Body cannot be empty when content-type
-  is set to 'application/json'`). Corrigé : l'en-tête n'est posé que si un
-  corps est effectivement envoyé.
-- **`apps/mobile/src/hooks/useProfile.ts`** : le profil n'était chargé qu'au
-  premier montage du hook, sans se re-déclencher après la connexion — un
-  utilisateur qui se connectait après un premier rendu non authentifié
-  restait bloqué avec `profile = null`. Corrigé : le hook prend maintenant un
-  paramètre `enabled` (branché sur la présence de session) et recharge le
-  profil à chaque passage de `false` à `true`.
-
-Ajouts d'outillage nécessaires pour faire tourner l'app dans un navigateur
-(utile pour des previews rapides sans Expo Go) :
-`apps/mobile/index.js` (point d'entrée explicite, `main` mis à jour en
-conséquence), `apps/mobile/metro.config.js` (watchFolders + symlinks pour le
-monorepo pnpm), et les dépendances `react-dom`, `react-native-web`,
-`@expo/metro-runtime`, `@babel/runtime` (ce dernier ajouté aussi à la racine,
-Metro ne le trouvant pas nativement dans la structure pnpm sans ça).
+**Limite de cet environnement de test** : le réseau sortant vers
+`*.supabase.co` est bloqué par la politique de cet environnement, donc l'auth
+Supabase réelle et les appels Stripe n'ont pas pu être exercés en conditions
+réelles ici. Pour le test, `getCurrentProfile`/`middleware.ts` ont été
+temporairement modifiés pour simuler un utilisateur connecté (variable
+`DEV_BYPASS_AUTH`), le temps de vérifier le reste de l'application — ce
+contournement a été entièrement retiré avant le commit (vérifié par `git
+diff` et un nouveau `next build`/`typecheck` propres). Un bug UX réel a été
+trouvé et corrigé pendant ce test : la quantité d'un aliment ajouté au panier
+était figée à 100 g sans possibilité de l'ajuster (`AjouterRepasForm.tsx`
+propose maintenant un champ éditable).
 
 ## Prochaines étapes suggérées
 
-1. Créer le projet Supabase et renseigner les `.env` (voir README)
-2. Lancer `prisma migrate dev` pour créer les tables
-3. Tester le parcours complet sur Expo Go : inscription → onboarding → ajout
-   d'un repas → vérifier que la flamme s'allume
-4. Écran calendrier mensuel (façon Strava) branché sur `/streaks/calendar`
-5. Notifications push (Expo Notifications + rappel avant minuit)
-6. Intégration IA vision pour le scan photo de repas
-7. CGU / politique de confidentialité / endpoints export-suppression RGPD
-8. Abonnement premium (paiement CB/Apple Pay/Google Pay)
+1. Créer le projet Supabase + Stripe réels et renseigner les `.env`
+2. Tester le parcours complet en conditions réelles (hors de ce bac à sable)
+3. Intégrer l'IA vision (scan photo) avec l'API Claude
+4. Notification de rappel de streak en fin de journée (à définir : cron +
+   email, ou push si un futur companion mobile est envisagé)
+5. Animation de célébration des paliers de badges à l'ouverture de l'app
+6. CGU / politique de confidentialité / endpoints export-suppression RGPD
+7. Connexion Google / Apple via Supabase Auth

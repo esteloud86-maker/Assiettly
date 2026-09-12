@@ -35,6 +35,12 @@ export interface ProfilPhysique {
   objectifType: ObjectifType;
 }
 
+export interface ProjectionObjectif {
+  /** Nombre de jours estimés pour atteindre le poids cible (null si non pertinent). */
+  joursEstimes: number | null;
+  dateEstimee: string | null; // ISO date
+}
+
 export const STREAK_BADGE_PALIERS = [7, 30, 100, 365] as const;
 export type StreakBadgePalier = (typeof STREAK_BADGE_PALIERS)[number];
 
