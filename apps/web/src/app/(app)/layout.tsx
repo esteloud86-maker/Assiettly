@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { BarreNavigation } from "@/components/dashboard/BarreNavigation";
 import { EnTeteApp } from "@/components/EnTeteApp";
 import { requireProfile } from "@/server/auth";
 
@@ -12,7 +13,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   return (
     <div className="min-h-screen bg-creme-100">
       <EnTeteApp streakActuel={profile.streakSummary?.streakActuel ?? 0} />
-      <main className="mx-auto max-w-4xl px-4 py-6 sm:px-6">{children}</main>
+      <main className="mx-auto max-w-4xl px-4 pb-24 pt-6 sm:px-6">{children}</main>
+      <BarreNavigation />
     </div>
   );
 }

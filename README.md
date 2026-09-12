@@ -138,15 +138,25 @@ curl -H "Authorization: Bearer $CRON_SECRET" http://localhost:3000/api/cron/stre
   pendant l'animation de progression, avant redirection vers le paywall
 - **Paywall** après l'onboarding : comparatif gratuit/premium, essai Stripe
   de 7 jours (carte requise, non débitée avant la fin), ou accès gratuit
-- Dashboard avec **anneau de progression calorique** + barres de macros
+- **Dashboard** avec navigation par barre basse (Accueil/Progrès/Groupes/
+  Profil + bouton "+" d'ajout rapide) : sélecteur de jours de la semaine,
+  anneau calorique du jour, sous-cartes macro paginées (protéines/glucides/
+  lipides puis fibres/score santé), repas récents
+- **Détail nutritionnel** d'un repas : réglage de portion en temps réel,
+  calories/macros, liste d'ingrédients
 - Ajout de repas : recherche d'aliments, scan de code-barres (Open Food
   Facts), quantité ajustable
-- Suivi de poids avec graphique de tendance
+- **Écran Progrès** unifié : poids + objectif, série avec mini-semaine,
+  graphique d'évolution du poids (période, % de l'objectif, point
+  interactif), message d'encouragement contextuel, moyenne calorique et
+  tendance, calendrier mensuel des flammes
 - Système de flamme : calcul quotidien, freeze (2/mois), paliers de badges
-  (7/30/100/365 jours), **écran calendrier mensuel** dédié
+  (7/30/100/365 jours)
 - **Rappel quotidien par e-mail** (Resend) **et notification push**
   (opt-in à l'onboarding, activable/désactivable depuis le profil) si la
   flamme est en danger
+- Aperçus non connectés (architecture posée, données de démonstration) :
+  scan caméra par IA vision et flux social par groupes
 
 ## Non implémenté dans ce MVP (prévu ensuite)
 

@@ -257,12 +257,115 @@ ADD COLUMN     "type_alimentation" "TypeAlimentation";
 ALTER TYPE "Sexe" ADD VALUE 'AUTRE';
 ```
 
+## Dashboard principal (accueil, détail nutritionnel, progrès, scan, groupes)
+
+Refonte des écrans post-onboarding autour d'une navigation par barre basse
+(façon app fitness grand public), avec le dashboard calorique et le détail
+nutritionnel comme cœur de l'usage quotidien.
+
+**Structure des composants** (`apps/web/src/components/dashboard/`) :
+- `primitives/` : `AnneauCirculaire` (anneau SVG générique — valeur, max,
+  dégradé ou couleur pleine, taille, épaisseur, contenu central — remplace
+  l'ancien `AnneauProgression`, qui n'était qu'un cas d'usage figé de ce
+  composant), `PaginationPoints` (points de pagination génériques),
+  `EtatVide` (état vide réutilisable : icône, message, CTA optionnel)
+- `BarreNavigation.tsx` + `MenuActionRapide.tsx` : barre basse à 4 onglets
+  (Accueil / Progrès / Groupes / Profil) et bouton "+" flottant central
+  ouvrant une feuille d'action (Scanner / Code-barres / Recherche manuelle /
+  Saisie manuelle) — ces trois derniers renvoient vers le flux d'ajout
+  existant (`AjouterRepasForm`, déjà capable de recherche + code-barres +
+  quantité), seul "Scanner" ouvre le nouvel écran caméra
+- `SelecteurJoursSemaine.tsx`, `CarteCaloriesJour.tsx`, `CarteMacro.tsx`,
+  `CartesMacroPaginees.tsx`, `CarteRepasRecent.tsx` : composants du dashboard
+  d'accueil
+- `AjusteurQuantiteRepas.tsx`, `BoutonPartager.tsx`, `MenuRepas.tsx` :
+  composants de l'écran de détail nutritionnel
+- `progres/` : `CartePoidsActuel`, `CarteSerieProgres`,
+  `GraphiqueEvolutionPoids`, `MessageEncouragement`, `CarteMoyenneCalories`,
+  `CalendrierMensuel` (extrait de l'ancien écran calendrier, désormais
+  réutilisable)
+- `scan/EcranScanMock.tsx`, `social/FluxGroupesMock.tsx` : aperçus non
+  connectés (voir plus bas)
+
+**Routes** : `/accueil` (refonte), `/repas/[id]` (nouveau détail
+nutritionnel), `/progres` (nouvel écran unifié poids + série + calendrier —
+`/poids` et `/streaks/calendrier` deviennent de simples redirections vers
+`/progres` pour ne pas casser de liens existants), `/scanner` (plein écran,
+hors du groupe de layout `(app)` pour ne pas afficher header/nav par-dessus
+la caméra), `/groupes` (nouvel onglet, V2).
+
+**Données réelles, pas statiques** : toutes les valeurs affichées viennent de
+Prisma, calculées à la demande dans `src/server/actions/meals.ts` :
+- `obtenirSemaineDashboard()` : calories consommées par jour sur la semaine
+  calendaire (lundi → dimanche) contenant aujourd'hui, pour les mini-anneaux
+  du sélecteur de jours
+- `obtenirRepasParId()` / `ajusterQuantiteRepas()` : détail d'un repas et
+  ajustement de portion — la quantité et les valeurs nutritionnelles de
+  chaque aliment sont redistribuées proportionnellement (le ratio
+  valeur/grammage de chaque aliment reste constant), donc l'opération reste
+  stable même appliquée plusieurs fois de suite ; l'ajustement redéclenche
+  `recomputerStreakPourJour` (la flamme du jour peut changer si la nouvelle
+  quantité sort de la fourchette ±10%)
+- `obtenirTendanceCalories()` : moyenne calorique sur 7 jours vs les 7 jours
+  précédents, pour la flèche de tendance de l'écran Progrès
+
+**Heuristiques documentées** (pas des calculs médicaux) :
+- "Score santé" (carte macro, 2ᵉ page du dashboard) = moyenne des trois
+  ratios macro du jour (protéines/glucides/lipides), chacun plafonné à
+  100 %, exprimée sur 100
+- Objectif "Fibres" fixé à 25 g/jour (repère visuel générique, pas
+  personnalisé par profil)
+- Message d'encouragement de l'écran Progrès : compare le poids sur les 5
+  dernières pesées à la direction attendue par l'objectif (perte/prise/
+  maintien) pour choisir un message parmi 4, toujours formulé positivement
+  — jamais un diagnostic
+
+**Écran de détail nutritionnel** : la photo réelle n'existe pas encore (pas
+de scan IA), remplacée par un bloc dégradé corail→ambre avec une icône —
+sera branché sur la vraie photo capturée à l'intégration de l'IA vision. Le
+bouton "Corriger" (IA) est désactivé avec une infobulle "bientôt
+disponible" pour la même raison. Le bouton de partage utilise l'API Web
+Share native quand disponible, sans fallback forcé.
+
+**Scan caméra (`/scanner`) et flux social (`/groupes`) — aperçus non
+connectés**, comme demandé : l'architecture est en place mais les données
+sont simulées, clairement présentées comme telles à l'écran ("Aperçu",
+"arrive bientôt") plutôt que déguisées en fonctionnalité réelle.
+- Le scan simule une capture puis fait apparaître progressivement des
+  bulles d'ingrédients reliées par un trait fin à un point du plat (SVG en
+  superposition), dans l'esprit demandé, avant de renvoyer vers l'ajout
+  manuel — la vraie détection (API Claude vision) reste à intégrer.
+- Le flux social affiche un bandeau "aperçu" permanent, des membres/posts de
+  démonstration (noms génériques, pas de vraies personnes), et tous les
+  boutons d'interaction (réagir, commenter, changer de groupe) sont
+  désactivés — à remplacer par de vraies données/actions quand les groupes
+  seront implémentés (création, invitations, réactions persistées).
+
+**Vérification** : `pnpm typecheck` (web) et `pnpm build` passent sans
+erreur. Les écrans ont été testés dans un navigateur piloté automatiquement
+avec des données de démonstration (profil, repas, pesées, série) créées
+temporairement en base locale via un court-circuit d'authentification
+retiré avant le commit (même méthode que documentée plus haut pour
+l'onboarding) — anneau calorique, sous-cartes macro paginées, réglage de
+portion (recalcul immédiat des calories et de la flamme du jour), écran
+Progrès (poids, série, graphique, calendrier), menu d'action rapide et
+démo du scan ont tous été vérifiés visuellement.
+
 ## Prochaines étapes suggérées
 
 1. Vérifier le domaine `assiettly.fr` sur Resend et renseigner les clés
-2. Intégrer l'IA vision (scan photo) avec l'API Claude
-3. Étendre les e-mails Resend : bienvenue à l'inscription, fin d'essai Stripe
+2. Intégrer l'IA vision (scan photo) avec l'API Claude — brancher sur
+   `EcranScanMock` (remplacer la démo par un vrai flux caméra + upload +
+   détection) et sur l'écran de détail nutritionnel (vraie photo, bouton
+   "Corriger" fonctionnel)
+3. Implémenter les Groupes (V2) : création/invitation, classement par
+   streak persistant, réactions et commentaires — remplacer
+   `FluxGroupesMock` par de vraies données
+4. Écran "Avant / Après" dans le Profil (comparaison de deux photos +
+   poids/date, option masquer le poids, partage) — évoqué dans le brief du
+   dashboard comme piste à évaluer, pas encore construit
+5. Étendre les e-mails Resend : bienvenue à l'inscription, fin d'essai Stripe
    proche, célébration d'un palier de badge atteint
-4. Animation de célébration des paliers de badges à l'ouverture de l'app
-5. CGU / politique de confidentialité / endpoints export-suppression RGPD
-6. Connexion Google / Apple via Supabase Auth
+6. Animation de célébration des paliers de badges à l'ouverture de l'app
+7. CGU / politique de confidentialité / endpoints export-suppression RGPD
+8. Connexion Google / Apple via Supabase Auth
