@@ -1,3 +1,5 @@
+import { BoutonExportDonnees } from "@/components/BoutonExportDonnees";
+import { BoutonSupprimerCompte } from "@/components/BoutonSupprimerCompte";
 import { NotificationsToggle } from "@/components/NotificationsToggle";
 import { CarteInstallationPwa } from "@/components/onboarding/CarteInstallationPwa";
 import { ouvrirPortailAbonnement } from "@/server/actions/billing";
@@ -59,11 +61,17 @@ export default async function ProfilPage() {
         <CarteInstallationPwa />
       </div>
 
-      <div className="rounded-2xl bg-creme-50 p-6 shadow-sm">
-        <h2 className="mb-2 font-titre font-semibold text-charbon-800">Données &amp; confidentialité</h2>
-        <p className="text-sm text-charbon-400">
-          Conformément au RGPD, tu peux demander l&rsquo;export ou la suppression de tes données à tout moment.
-        </p>
+      <div className="space-y-4 rounded-2xl bg-creme-50 p-6 shadow-sm">
+        <div>
+          <h2 className="mb-2 font-titre font-semibold text-charbon-800">Données &amp; confidentialité</h2>
+          <p className="text-sm text-charbon-400">
+            Conformément au RGPD, tu peux exporter ou supprimer tes données à tout moment.
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <BoutonExportDonnees />
+          <BoutonSupprimerCompte />
+        </div>
       </div>
     </div>
   );

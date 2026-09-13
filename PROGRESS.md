@@ -1111,6 +1111,63 @@ inaction reste affiché comme intact jusqu'à la prochaine action de
 l'utilisateur. Nécessiterait un job planifié pour recalculer
 proactivement ; pas fait ici.
 
+## Préparation acquisition : RGPD, pages légales, délai de navigation dashboard
+
+Suite à "prêt pour l'acquisition ?" et "tout ce que tu peux faire, fait" —
+tout ce qui pouvait être fait depuis ce sandbox (sans accès à un vrai
+Supabase/Stripe/Vercel) a été fait :
+
+**RGPD — export et suppression de compte, réellement implémentés** (pas
+un placeholder) :
+- `src/server/actions/rgpd.ts` : `exporterMesDonnees()` renvoie toutes les
+  données personnelles du profil (profil, objectifs, repas, poids, streak,
+  métadonnées d'analyses photo — jamais les photos elles-mêmes, jamais
+  stockées) en JSON, téléchargé côté client par `BoutonExportDonnees.tsx`.
+  `supprimerMonCompte()` annule immédiatement l'abonnement Stripe en cours,
+  supprime le compte Supabase Auth (si `SUPABASE_SERVICE_ROLE_KEY` est
+  configurée — **nouvelle variable d'environnement optionnelle, à
+  renseigner en production**, cf. `.env.example` ; Project Settings > API >
+  service_role), puis supprime le profil Prisma (cascade sur repas, poids,
+  streaks, objectifs, abonnement, push). Protégé côté UI par une saisie de
+  confirmation explicite (`BoutonSupprimerCompte.tsx`) avant d'activer le
+  bouton — action irréversible.
+- **Sans `SUPABASE_SERVICE_ROLE_KEY` configurée**, la suppression efface
+  bien toutes les données applicatives mais laisse le compte Supabase Auth
+  actif (l'utilisateur pourrait se reconnecter et redémarrer un onboarding
+  vierge) — à corriger simplement en renseignant cette clé en production.
+
+**Pages légales réelles** — CGU, politique de confidentialité et mentions
+légales ne sont plus des placeholders (`PageLegaleStub` supprimé, plus
+utilisé nulle part) : contenu réel et substantiel pour chaque page,
+vérifié contre le code réel (tarifs exacts, durée d'essai, ce qui est
+envoyé à Anthropic, hébergement Supabase eu-west-3, absence de tout
+tracking/analytics dans le code). **Reste à compléter avant lancement
+public** : les informations d'identité légale de l'entreprise, marquées
+`[À compléter : ...]` dans `mentions-legales/page.tsx` — raison
+sociale/forme juridique, adresse du siège, SIRET, TVA intracommunautaire,
+capital social, nom du directeur de publication. Faire relire l'ensemble
+par un professionnel du droit avant le lancement public — ce contenu est
+sérieux et exact mais n'a pas été rédigé par un juriste.
+
+**Délai de navigation dans le dashboard ramené à zéro perçu** : ajout de
+`loading.tsx` (squelettes de chargement au style de la marque) sur
+`accueil`, `journal`, `progres`, `profil` et `repas/[id]` — Next.js les
+affiche instantanément pendant l'aller-retour serveur, au lieu d'un écran
+blanc. `BarreNavigation` utilisait déjà `next/link` (préchargement
+automatique des onglets visibles). **Limite honnête** : ceci élimine le
+blanc perçu, ce n'est pas un aller-retour serveur réellement nul (impossible
+sans accès à une vraie base de données pour mesurer/optimiser davantage
+depuis ce sandbox).
+
+**Batch des migrations** : les 5 migrations en attente ont été livrées en
+un seul fichier SQL (envoyé directement à l'utilisateur), avec
+recommandation d'utiliser `npx prisma migrate deploy` plutôt qu'un
+copier-coller manuel dans l'éditeur SQL Supabase (idempotent, garde la
+table de suivi Prisma cohérente).
+
+**Vérification** : `pnpm typecheck` et `pnpm build` propres après chaque
+lot de changements.
+
 ## Prochaines étapes suggérées
 
 1. Renseigner une vraie clé `ANTHROPIC_API_KEY` (actuellement un
