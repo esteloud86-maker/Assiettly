@@ -1,4 +1,5 @@
 import { NotificationsToggle } from "@/components/NotificationsToggle";
+import { CarteInstallationPwa } from "@/components/onboarding/CarteInstallationPwa";
 import { ouvrirPortailAbonnement } from "@/server/actions/billing";
 import { requireProfile } from "@/server/auth";
 import { estPremium } from "@/server/billing";
@@ -48,6 +49,14 @@ export default async function ProfilPage() {
       <div className="rounded-2xl bg-creme-50 p-6 shadow-sm">
         <h2 className="mb-2 font-titre font-semibold text-charbon-800">Notifications</h2>
         <NotificationsToggle />
+      </div>
+
+      <div className="rounded-2xl bg-creme-50 p-6 shadow-sm">
+        <h2 className="mb-2 font-titre font-semibold text-charbon-800">Installer l&rsquo;app</h2>
+        <p className="mb-3 text-sm text-charbon-400">
+          Garde Assiettly à portée de main, directement depuis ton écran d&rsquo;accueil.
+        </p>
+        <CarteInstallationPwa />
       </div>
 
       <div className="rounded-2xl bg-creme-50 p-6 shadow-sm">

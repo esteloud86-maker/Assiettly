@@ -169,6 +169,11 @@ curl -H "Authorization: Bearer $CRON_SECRET" http://localhost:3000/api/cron/stre
   confiance par ingrédient et globale), résultat éditable avant validation
 - Aperçu non connecté (architecture posée, données de démonstration) : flux
   social par groupes
+- **PWA installable** : manifest, service worker (shell mis en cache),
+  écran dédié en fin d'onboarding qui adapte le tutoriel d'installation
+  selon la plateforme (bouton natif sur Android, tutoriel manuel en 3
+  étapes sur iOS, QR code sur desktop), et un moyen de la re-proposer
+  depuis le profil
 
 ## Non implémenté dans ce MVP (prévu ensuite)
 

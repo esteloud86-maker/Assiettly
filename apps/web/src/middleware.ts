@@ -58,5 +58,11 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|webp)$).*)"],
+  // Le manifest, le service worker et les icônes doivent rester joignables
+  // sans session (le navigateur les récupère avant toute authentification
+  // pour juger l'installabilité) — sans cette exclusion, le middleware les
+  // redirigeait vers /connexion comme n'importe quelle route protégée.
+  matcher: [
+    "/((?!_next/static|_next/image|favicon.ico|manifest.webmanifest|sw.js|icons/|.*\\.(?:svg|png|jpg|jpeg|webp|ico|webmanifest)$).*)",
+  ],
 };

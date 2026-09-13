@@ -9,6 +9,7 @@ import { EtapeCalculFinal } from "./etapes/EtapeCalculFinal";
 import { EtapeCoach } from "./etapes/EtapeCoach";
 import { EtapeDateNaissance } from "./etapes/EtapeDateNaissance";
 import { EtapeFreins } from "./etapes/EtapeFreins";
+import { EtapeInstallation } from "./etapes/EtapeInstallation";
 import { EtapeMotivation } from "./etapes/EtapeMotivation";
 import { EtapeNotifications } from "./etapes/EtapeNotifications";
 import { EtapeObjectif } from "./etapes/EtapeObjectif";
@@ -76,6 +77,10 @@ export function OnboardingWizard() {
   }
 
   const surEcranFinal = etape === ETAPES.length;
+  // L'installation PWA se propose juste après le calcul final, avant le
+  // premier accès au dashboard (paywall compris) — jamais avant, pour ne
+  // pas interrompre le parcours de calcul qui montre la valeur du produit.
+  const surEcranInstallation = etape === ETAPES.length + 1;
 
   // h-[100dvh] (plutôt que min-h-screen) + zone de contenu overflow-y-auto :
   // le header et le bouton "Continuer" restent toujours visibles, quelle
@@ -84,7 +89,16 @@ export function OnboardingWizard() {
   if (surEcranFinal) {
     return (
       <div className="safe-top safe-bottom mx-auto flex h-[100dvh] max-w-md flex-col overflow-y-auto px-4 py-6">
-        <EtapeCalculFinal profil={profil} onTermine={soumettre} erreur={erreur} />
+        <EtapeCalculFinal profil={profil} onTermine={() => setEtape((e) => e + 1)} erreur={erreur} />
+      </div>
+    );
+  }
+
+  if (surEcranInstallation) {
+    return (
+      <div className="safe-top safe-bottom mx-auto flex h-[100dvh] max-w-md flex-col overflow-y-auto px-4 py-6">
+        <EtapeInstallation onContinuer={soumettre} />
+        {erreur ? <p className="mt-4 text-center text-corail-600">{erreur}</p> : null}
       </div>
     );
   }

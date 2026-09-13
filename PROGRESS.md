@@ -722,25 +722,136 @@ simuler un iPhone SE) sur : onboarding (Sexe, Date de naissance),
 dashboard d'accueil, écran de scan, ajout de repas (avant/après le fix du
 bug de débordement), détail nutritionnel, écran Progrès.
 
+## PWA installable + écran d'installation en fin d'onboarding
+
+Assiettly devient une Progressive Web App installable, avec un écran dédié
+en fin d'onboarding qui encourage — sans jamais l'imposer — l'ajout à
+l'écran d'accueil.
+
+**Manifest** (`public/manifest.webmanifest`) : `name`/`short_name`
+"Assiettly", `display: "standalone"`, `theme_color` corail `#F2603C`
+(barre de statut une fois l'app ouverte), `background_color` crème
+`#FBF4EC` (splash screen au lancement), `start_url: "/"` — qui gère déjà
+tout seul la redirection selon l'état de connexion (`/` redirige vers
+`/accueil` si connecté, sinon montre la landing, logique déjà en place).
+Icônes 192×192 et 512×512 + apple-touch-icon 180×180, générées à partir du
+SVG de marque (`FlammeIcon`) sur fond crème plutôt que dessinées à la main
+— cohérence garantie avec le reste de l'identité visuelle.
+
+**Balises iOS** (`app/layout.tsx`, via l'API `Metadata`/`Viewport` de
+Next.js — pas de balises manuelles) : `apple-mobile-web-app-capable`,
+`apple-mobile-web-app-status-bar-style`, `apple-mobile-web-app-title`,
+`apple-touch-icon`. Le `theme-color` de la page elle-même est aussi passé
+en corail (il était en crème depuis le prompt mobile-first) pour rester
+cohérent avec le `theme_color` du manifest.
+
+**Bug réel trouvé et corrigé** : le middleware protège tout par défaut
+sauf sa liste blanche de routes publiques — `/manifest.webmanifest` et
+`/sw.js` n'y étaient pas, donc un visiteur non connecté qui les demandait
+(ce que fait le navigateur pour juger l'installabilité, sans session) se
+faisait rediriger vers `/connexion`, cassant le manifest et le service
+worker. Corrigé en excluant ces fichiers (et `/icons/`) du matcher du
+middleware, au même titre que les fichiers statiques déjà exclus, plutôt
+qu'en les ajoutant à la liste blanche — plus robuste, cohérent avec le
+traitement des autres assets publics.
+
+**Service worker** (`public/sw.js`, déjà existant pour le push, étendu) :
+`install` pré-cache un petit shell (manifest, icônes) et `fetch` applique
+network-first sur la navigation (toujours le contenu à jour, secours cache
+seulement hors-ligne) et cache-first sur les assets statiques versionnés
+(`_next/static`, icônes). Pas d'objectif offline-first — le scan photo et
+le calcul nutritionnel nécessitent une connexion à l'API Claude, comme
+prévu — l'objectif est la vitesse de chargement et l'installabilité.
+
+**Capture de `beforeinstallprompt`** (`src/lib/pwaInstallPrompt.ts`) :
+contrainte du navigateur oblige, l'événement n'est envoyé qu'une fois et
+tôt dans le cycle de vie de la page, donc son écoute démarre dès
+`app/layout.tsx` (composant `PwaInit`, monté sur toutes les pages) plutôt
+qu'à l'écran d'installation — sinon l'événement serait déjà passé le temps
+que l'utilisateur atteigne la fin de l'onboarding. Stocké dans un module
+singleton avec un mécanisme d'abonnement pour que l'écran d'installation
+et le profil réagissent à sa disponibilité (ou à son absence, ex. app déjà
+installée) sans prop-drilling.
+
+**Détection de plateforme** (`src/lib/detectionPlateforme.ts`) : par user
+agent — il n'existe pas d'API de feature-detection fiable pour distinguer
+iOS/Android/desktop. Gère le cas iPadOS 13+, qui se présente comme un Mac
+(détecté via `maxTouchPoints > 1` combiné à "Macintosh" dans l'UA).
+`estDejaInstallee()` combine `display-mode: standalone` (Android/Chrome)
+et `navigator.standalone` (propriété historique, plus fiable sur Safari
+iOS).
+
+**Écran d'installation** (`EtapeInstallation.tsx`, positionné juste après
+l'écran de calcul final, avant le paywall et le premier accès au
+dashboard) :
+- Mockup d'écran d'accueil de téléphone en SVG/CSS pur (même logique que
+  les mockups de la landing) avec l'icône Assiettly parmi des icônes
+  génériques
+- Se saute automatiquement si l'app tourne déjà en mode standalone
+  (nouveau compte sur un téléphone qui a déjà installé Assiettly) — aucun
+  flash de contenu, la vérification se fait avant le premier rendu utile
+- **Android** : bouton "Ajouter à l'écran d'accueil" si le prompt est
+  disponible (déclenche la boîte de dialogue système) ; sinon message de
+  repli avec les étapes manuelles (menu ⋮ du navigateur) — jamais un
+  bouton qui ne ferait rien
+- **iOS** : aucun bouton magique, un vrai tutoriel en 3 étapes numérotées
+  (icône de partage → "Sur l'écran d'accueil" → "Ajouter"), avec des
+  pictogrammes dessinés dans l'identité Assiettly plutôt que des captures
+  de l'interface Apple (droits d'image) — **limite non contournable du
+  navigateur, pas un choix de conception** : il n'existe aucune API pour
+  déclencher l'installation depuis Safari iOS
+- **Desktop** : message indiquant que l'expérience est pensée pour mobile
+  + QR code généré à la volée (`qrcode`, nouvelle dépendance légère,
+  génération SVG→data URL, zéro appel réseau externe) pointant vers
+  l'origine courante — pertinent ici puisque quelqu'un qui découvre le
+  lien sur ordinateur n'a sinon aucun moyen rapide de le retrouver sur son
+  téléphone
+- "Plus tard" toujours présent et discret (lien souligné, pas un bouton
+  plein) tant que rien n'est installé ; devient un bouton "Continuer" plein
+  une fois l'installation confirmée (événement `appinstalled`) — jamais
+  bloquant, comme demandé
+
+**Re-proposer depuis le profil** : le même composant partagé
+(`CarteInstallationPwa`) est réutilisé tel quel dans `/profil`, sans le
+cadre "Plus tard"/mockup propre à l'onboarding — pour les utilisateurs qui
+ont choisi de ne pas installer tout de suite.
+
+**Vérification** : `pnpm typecheck` + `pnpm build` propres. Manifest et
+service worker confirmés publiquement joignables (`content-type:
+application/manifest+json`, 200 sur `/sw.js` et `/icons/*`) et toutes les
+balises `<head>` attendues présentes dans le HTML rendu. Les trois
+variantes de `CarteInstallationPwa` (Android, iOS, desktop avec QR code
+réel) vérifiées visuellement via user agents simulés sur `/profil`.
+
+**Limite connue, honnête** : `beforeinstallprompt` ne se déclenche que
+lorsque Chrome juge l'app installable selon ses propres heuristiques
+(engagement de l'utilisateur, etc.) — impossible à forcer ni à tester de
+façon garantie en local. Le chemin de repli (message manuel) a donc été
+le seul testable dans ce sandbox ; le vrai bouton natif est à confirmer
+sur un Android réel avant lancement.
+
 ## Prochaines étapes suggérées
 
 1. Renseigner une vraie clé `ANTHROPIC_API_KEY` (actuellement un
    placeholder) et tester le scan de repas de bout en bout sur de vraies
    photos — en particulier les plats composites (quiches, lasagnes, plats
    en sauce) pour juger si Sonnet 4.5 suffit ou si Opus 4.5 est nécessaire
-2. Activer les fournisseurs Google et Apple dans Supabase Auth (Authentication
+2. Tester l'installation PWA sur un vrai téléphone Android (le prompt
+   natif `beforeinstallprompt` dépend des heuristiques de Chrome,
+   impossible à garantir en local) et sur iOS (tutoriel manuel)
+3. Activer les fournisseurs Google et Apple dans Supabase Auth (Authentication
    → Providers) pour que les boutons OAuth de connexion/inscription
    fonctionnent réellement
-3. Vérifier le domaine `assiettly.fr` sur Resend et renseigner les clés
-4. Implémenter les Groupes (V2) : création/invitation, classement par
+4. Vérifier le domaine `assiettly.fr` sur Resend et renseigner les clés
+5. Implémenter les Groupes (V2) : création/invitation, classement par
    streak persistant, réactions et commentaires — remplacer
    `FluxGroupesMock` par de vraies données
-5. Écran "Avant / Après" dans le Profil (comparaison de deux photos +
+6. Écran "Avant / Après" dans le Profil (comparaison de deux photos +
    poids/date, option masquer le poids, partage) — évoqué dans le brief du
    dashboard comme piste à évaluer, pas encore construit
-6. Étendre les e-mails Resend : bienvenue à l'inscription, fin d'essai Stripe
+7. Étendre les e-mails Resend : bienvenue à l'inscription, fin d'essai Stripe
    proche, célébration d'un palier de badge atteint
-7. Animation de célébration des paliers de badges à l'ouverture de l'app
-8. Rédiger les vraies pages légales (CGU, confidentialité, mentions
+8. Animation de célébration des paliers de badges à l'ouverture de l'app
+9. Rédiger les vraies pages légales (CGU, confidentialité, mentions
    légales — actuellement des placeholders) et les endpoints
    export/suppression de données RGPD
