@@ -36,15 +36,37 @@ export function Comparatif() {
   return (
     <section className="mx-auto max-w-4xl px-4 py-16 sm:px-6">
       <h2 className="text-center font-titre text-3xl font-bold text-charbon-800">Ce qui change avec Assiettly</h2>
-      <p className="mt-2 text-center text-charbon-400">Comparé aux apps de suivi calorique généralistes.</p>
+      <p className="mt-2 text-center text-charbon-400">
+        Comparé aux applications de suivi calorique généralistes.
+      </p>
 
-      <div className="mt-10 overflow-x-auto rounded-2xl bg-creme-50 shadow-sm">
-        <table className="w-full min-w-[480px] text-left text-sm">
+      {/* Mobile : cartes empilées, tiennent sans défilement horizontal. */}
+      <div className="mt-8 space-y-3 sm:hidden">
+        {LIGNES.map((ligne) => (
+          <div key={ligne.critere} className="rounded-2xl bg-creme-50 p-4 shadow-sm">
+            <p className="text-sm font-medium text-charbon-800">{ligne.critere}</p>
+            <div className="mt-3 grid grid-cols-2 gap-2.5">
+              <div className="rounded-xl bg-corail-50 p-2.5">
+                <p className="font-titre text-xs font-semibold text-corail-600">Assiettly</p>
+                <p className="mt-1 text-sm font-medium text-sarcelle-600">{ligne.assiettly}</p>
+              </div>
+              <div className="rounded-xl bg-creme-100 p-2.5">
+                <p className="font-titre text-xs font-semibold text-charbon-400">Généralistes</p>
+                <p className="mt-1 text-sm text-charbon-400">{ligne.generaliste}</p>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Tablette et plus : tableau classique. */}
+      <div className="mt-8 hidden overflow-hidden rounded-2xl bg-creme-50 shadow-sm sm:block">
+        <table className="w-full text-left text-sm">
           <thead>
             <tr className="border-b border-creme-200">
               <th className="p-4 font-titre font-semibold text-charbon-800">Critère</th>
               <th className="p-4 font-titre font-semibold text-corail-600">Assiettly</th>
-              <th className="p-4 font-titre font-semibold text-charbon-400">Apps généralistes</th>
+              <th className="p-4 font-titre font-semibold text-charbon-400">Applications généralistes</th>
             </tr>
           </thead>
           <tbody>

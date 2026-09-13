@@ -26,7 +26,7 @@ export function EtapePoidsCible({ profil, majProfil }: EtapeProps) {
         <div className="mt-6">
           <EncartAvertissement>
             Cet objectif semble {poidsCible! < fourchette!.minKg ? "un peu bas" : "un peu élevé"} par rapport à ta
-            taille. Pas de souci si c&rsquo;est volontaire — n&rsquo;hésite juste pas à en parler à un professionnel
+            taille. Pas de souci si c&rsquo;est volontaire — n&rsquo;hésite pas à en parler à un professionnel
             de santé si besoin.
           </EncartAvertissement>
         </div>

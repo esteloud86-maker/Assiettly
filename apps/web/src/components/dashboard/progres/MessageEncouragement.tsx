@@ -1,7 +1,7 @@
 export type TendancePoids = "progression_stable" | "ralentissement" | "stable_maintien" | "pas_assez_de_donnees";
 
 const MESSAGES: Record<TendancePoids, string> = {
-  progression_stable: "Belle régularité 👏 Ta courbe suit bien la direction de ton objectif, continue comme ça.",
+  progression_stable: "Belle régularité 👏 Ta courbe va dans la bonne direction, continue comme ça.",
   ralentissement:
     "Le rythme ralentit un peu ces derniers jours, et c'est tout à fait normal — le corps a parfois besoin de faire des paliers. Reste régulier·ère, ça repart.",
   stable_maintien: "Ton poids reste stable, exactement ce qu'il faut pour un objectif de maintien 🎯",

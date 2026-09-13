@@ -917,6 +917,111 @@ du bouton) via un composant monté en isolation — impossible de déclencher
 un vrai `signUp()` dans cet environnement sans créer un compte réel sur le
 projet Supabase de production.
 
+## Comparatif mobile, relecture orthographe/formulation, logo
+
+**Comparatif responsive** : le tableau `Comparatif.tsx` (landing) forçait
+un `min-w-[480px]` avec défilement horizontal sur mobile — illisible d'un
+coup d'œil sur téléphone. Remplacé sous `sm` par des cartes empilées (une
+par critère, Assiettly vs apps généralistes côte à côte à l'intérieur de
+la carte) ; le tableau classique reste affiché à partir de `sm`. Aucun
+défilement horizontal nécessaire sur aucun format testé.
+
+**Relecture orthographe/formulation** : passage sur l'ensemble des textes
+visibles (landing, onboarding, dashboard, auth, pages légales). Corrections
+réelles apportées :
+- `CommentCaFonctionne.tsx` : verbe manquant ("dans tes objectifs" →
+  "où tu restes dans tes objectifs"), pour matcher la formulation déjà
+  correcte de la FAQ
+- `CarteInstallationPwa.tsx` : accord de genre ("Assiettly est pensé" →
+  "est pensée", cohérent avec "une application", "installée" ailleurs)
+- `EtapePoidsCible.tsx` : négation mal formée ("n'hésite juste pas" →
+  "n'hésite pas")
+- `accueil/page.tsx` : métaphore bancale ("voir tes progrès se remplir" →
+  "prendre forme")
+- `MessageEncouragement.tsx` : tournure redondante ("suit bien la
+  direction de ton objectif" → "va dans la bonne direction")
+- `CarteMoyenneCalories.tsx` : anglicisme évitable ("vs les 7 jours
+  précédents" → "par rapport aux 7 jours précédents")
+
+Le reste des textes (boutons, placeholders, messages d'erreur, alt/aria)
+était déjà correct.
+
+**Logo** : système de marque à partir de la flamme déjà utilisée dans
+l'app (`FlammeIcon.tsx`, mêmes coordonnées de tracé et même dégradé
+ambre → corail, pour une identité parfaitement cohérente). Livré en SVG
+autoportant (police Fredoka embarquée en base64 dans un `@font-face`
+interne — rendu fidèle même sans la police installée sur la machine du
+lecteur), dans `apps/web/public/brand/` :
+- `assiettly-icone.svg` — la flamme seule, fond transparent (avatar,
+  favicon, usages carrés)
+- `assiettly-horizontal.svg` — flamme + texte "Assiettly", fond clair
+- `assiettly-horizontal-sombre.svg` — même lockup, fond charbon foncé
+- `assiettly-empile.svg` — flamme au-dessus du texte, centré
+
+Prévisualisations PNG rendues via Playwright (même technique que pour les
+icônes PWA) pour validation visuelle avant livraison.
+
+## Bug de redirection après confirmation d'e-mail, e-mail de bienvenue, alignement Tarifs
+
+**Bug de redirection identifié** : le lien de confirmation envoyé par
+défaut (`{{ .ConfirmationURL }}`) utilise le flux PKCE — `/auth/callback`
+échange un `code` contre une session via `exchangeCodeForSession`, ce qui
+nécessite le `code_verifier` posé en cookie par le navigateur qui a initié
+l'inscription. **Si le lien est ouvert dans un autre navigateur ou appareil
+(webview Gmail/Outlook, ordinateur différent du téléphone, etc.), cet
+échange échoue silencieusement** et l'utilisateur retombe sur
+`/connexion?erreur=auth` au lieu d'atterrir sur `/onboarding` — c'est très
+probablement le bug observé.
+
+Correctif appliqué côté code (`/auth/callback/route.ts`) : la route accepte
+désormais aussi un lien construit avec `token_hash` + `type`, vérifié via
+`supabase.auth.verifyOtp()` — ce format ne dépend d'aucun cookie posé par
+le navigateur d'origine et fonctionne donc quel que soit l'appareil ou le
+navigateur utilisé pour cliquer sur le lien. C'est le format recommandé par
+la documentation Supabase pour les apps SSR. Le `code` PKCE reste accepté
+en parallèle (rétrocompatibilité, OAuth).
+
+**Action manuelle requise, non faisable depuis cet environnement** (aucun
+outil disponible ici n'a accès à la configuration Auth du projet Supabase
+en production) : dans le dashboard Supabase → Authentication → Email
+Templates, remplacer le lien des templates concernés pour qu'ils pointent
+vers `token_hash` au lieu de `{{ .ConfirmationURL }}` :
+- **Confirm signup** :
+  `{{ .SiteURL }}/auth/callback?token_hash={{ .TokenHash }}&type=signup`
+- **Reset Password** :
+  `{{ .SiteURL }}/auth/callback?token_hash={{ .TokenHash }}&type=recovery&next=/reinitialiser-mot-de-passe`
+
+Tant que ce changement de template n'est pas appliqué, les e-mails
+continueront à utiliser l'ancien lien `{{ .ConfirmationURL }}` (qui
+fonctionne toujours, mais reste sujet au bug ci-dessus).
+
+**E-mail de bienvenue** : ajouté (`emails/Bienvenue.tsx`, même habillage de
+marque que `RappelFlamme.tsx`). Envoyé depuis `terminerOnboarding()` juste
+après le passage de `onboardingTermine` à `true` — ce flag ne passe à
+`true` qu'une seule fois par profil, donc l'e-mail ne part qu'une seule
+fois par utilisateur, sans nouveau champ de suivi en base. Envoi en
+best-effort (`try/catch` autour de `resend.emails.send()`) : un échec
+(clé Resend absente en local, domaine pas encore vérifié) ne bloque jamais
+la fin de l'onboarding.
+
+**Alignement des cartes Tarifs (landing)** : bug réel trouvé par
+capture d'écran Playwright — les deux cartes ("Gratuit" et "Premium")
+avaient la même hauteur (stretch de grille), mais leurs boutons
+n'étaient pas à la même hauteur : celui de la carte Gratuit "flottait"
+plus haut, laissant un grand vide en dessous, faute de contenu au-dessus
+comparable à celui de la carte Premium. Corrigé en rendant les deux
+cartes `flex flex-col` avec `mt-auto` sur le bouton de la carte Gratuit,
+qui vient maintenant s'aligner exactement sur celui de la carte Premium.
+
+**Reste à auditer** : la remarque "pas bien aligné partout" est large ;
+seul le rendu public (landing, connexion, inscription) a pu être vérifié
+visuellement dans cet environnement — aucune base de données n'y est
+joignable (`DATABASE_URL` pointe sur `localhost:5432`, injoignable depuis
+ce sandbox), donc impossible d'afficher les écrans du dashboard avec des
+données réelles ici pour les auditer visuellement. À revérifier sur un
+environnement avec accès à la base (ou en production) si d'autres
+problèmes d'alignement sont repérés dans le dashboard.
+
 ## Prochaines étapes suggérées
 
 1. Renseigner une vraie clé `ANTHROPIC_API_KEY` (actuellement un

@@ -1,10 +1,13 @@
 "use server";
 
+import { render } from "@react-email/render";
 import { calculerObjectifs, onboardingSchema, type ProfilPhysique } from "@assiettly/shared";
 import type { Frein, MotivationPrincipale, TypeAlimentation } from "@assiettly/shared";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { Bienvenue } from "../../../emails/Bienvenue";
 import { prisma } from "@/lib/prisma";
+import { RESEND_FROM_EMAIL, resend } from "@/lib/resend";
 import { requireProfile } from "@/server/auth";
 
 export interface OnboardingInput {
@@ -80,6 +83,23 @@ export async function terminerOnboarding(input: OnboardingInput) {
       },
     });
   });
+
+  // Best-effort : un échec d'envoi ne doit jamais bloquer la fin de
+  // l'onboarding (ex. clé Resend absente en local, domaine pas encore
+  // vérifié). `onboardingTermine` ne passe à `true` qu'une seule fois par
+  // profil, donc ce point d'appel n'envoie l'e-mail de bienvenue qu'une
+  // seule fois par utilisateur.
+  try {
+    const html = await render(Bienvenue({ prenom: profile.nom }));
+    await resend.emails.send({
+      from: RESEND_FROM_EMAIL,
+      to: profile.email,
+      subject: "Bienvenue sur Assiettly 🎉",
+      html,
+    });
+  } catch (err) {
+    console.error("Échec de l'envoi de l'e-mail de bienvenue :", err);
+  }
 
   revalidatePath("/", "layout");
   redirect("/paywall");

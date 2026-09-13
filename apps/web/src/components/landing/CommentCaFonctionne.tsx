@@ -12,7 +12,7 @@ const ETAPES = [
   {
     icone: "🔥",
     titre: "Ta flamme avance",
-    description: "Chaque jour dans tes objectifs fait grandir ton streak, sans culpabiliser au moindre écart.",
+    description: "Chaque jour où tu restes dans tes objectifs fait grandir ton streak, sans culpabiliser au moindre écart.",
   },
   {
     icone: "📈",

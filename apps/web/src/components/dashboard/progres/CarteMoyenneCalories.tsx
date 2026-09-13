@@ -19,7 +19,7 @@ export function CarteMoyenneCalories({
           </span>
         ) : null}
       </div>
-      <p className="mt-1 text-xs text-charbon-400">vs les 7 jours précédents</p>
+      <p className="mt-1 text-xs text-charbon-400">par rapport aux 7 jours précédents</p>
     </div>
   );
 }

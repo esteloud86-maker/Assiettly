@@ -109,7 +109,7 @@ export function CarteInstallationPwa() {
   return (
     <div className="space-y-3 rounded-2xl bg-creme-100 p-5 text-center">
       <p className="text-sm text-charbon-600">
-        Assiettly est pensé pour le mobile. Ouvre ce lien depuis ton téléphone pour l&rsquo;installer, ou scanne ce
+        Assiettly est pensée pour le mobile. Ouvre ce lien depuis ton téléphone pour l&rsquo;installer, ou scanne ce
         code :
       </p>
       {qrDataUrl ? (

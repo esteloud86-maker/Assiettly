@@ -65,7 +65,7 @@ export default async function AccueilPage() {
           <EtatVide
             icone="🍽️"
             titre="Rien d'ajouté pour l'instant"
-            message="Ajoute ton premier repas de la journée pour voir tes progrès se remplir."
+            message="Ajoute ton premier repas de la journée pour voir tes progrès prendre forme."
             actionHref="/journal/ajouter"
             actionLabel="Ajouter un repas"
           />
