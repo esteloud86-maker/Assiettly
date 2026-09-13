@@ -863,6 +863,60 @@ OAuth n'est plus embarqué) ; testé visuellement — bouton bien désactivé à
 vide et activé une fois les deux champs remplis, bascule œil/œil barré
 confirmée (`type` du champ passe de `password` à `text` au clic).
 
+## Écran de vérification email : bug de redirection corrigé + refonte
+
+**Bug réel trouvé et corrigé** : `supabase.auth.signUp()` était appelé sans
+`options.emailRedirectTo`. Sans ce paramètre, le lien de confirmation reçu
+par e-mail ramène l'utilisateur sur `/` (l'URL du site par défaut côté
+Supabase) avec un `?code=...` dans l'URL qui n'est **jamais échangé contre
+une session** — la landing page ne regarde pas ce paramètre. Résultat en
+prod : l'utilisateur clique sur "confirmer", atterrit sur la landing,
+reste non connecté, sans aucun message d'erreur. Corrigé en passant
+`options: { emailRedirectTo: `${origin}/auth/callback` }` à `signUp()` (et
+au `resend()` du bouton "Renvoyer l'email", qui avait le même trou). La
+suite de la chaîne était déjà correcte et n'a pas eu besoin d'être
+modifiée : `/auth/callback` échange le code puis redirige vers
+`/accueil`, dont le layout (`(app)/layout.tsx`) redirige lui-même vers
+`/onboarding` si `onboardingTermine` est faux — exactement la logique
+demandée (onboarding non terminé → questionnaire, sinon → dashboard), déjà
+en place depuis le prompt landing/auth mais qui ne pouvait jamais
+s'exécuter tant que la session n'était pas établie.
+
+**Écran refondu** (`EcranVerificationEmail.tsx`, remplace le bloc minimal
+inline de `/inscription`) :
+- Illustration enveloppe dessinée dans l'identité Assiettly
+  (`IllustrationEnveloppe.tsx`, dégradé corail/ambre + badge de
+  confirmation sarcelle) plutôt qu'un emoji seul — rendu identique sur
+  tous les appareils
+- Adresse exacte affichée ("Envoyé à prenom@exemple.fr")
+- Mention discrète "Pense à vérifier tes spams"
+- Bouton "Renvoyer l'email" avec compte à rebours de 45 s (déclenché dès
+  l'arrivée sur l'écran, pas seulement après un renvoi manuel — la
+  première demande vient tout juste de partir) via `supabase.auth.resend()`
+- Lien "Retour à la connexion" conservé
+
+**Détection automatique de la confirmation** : implémentée, pas
+contournée. Deux mécanismes combinés : `supabase.auth.onAuthStateChange`
+(événementiel — le client Supabase écoute déjà les changements de session
+faits par un autre onglet du même navigateur via l'événement `storage`) et
+un poll léger de secours (`getSession()` toutes les 4 s) en cas de
+navigateur où cet événement serait peu fiable. Dès qu'une session est
+détectée, redirection automatique vers `/accueil` (qui applique la même
+logique onboarding/dashboard) — l'utilisateur n'a plus besoin de revenir
+manuellement dans l'app après avoir cliqué sur le lien.
+**Limite honnête** : ça ne fonctionne que si la confirmation a lieu dans le
+même navigateur (stockage partagé) — sur un autre appareil (ex. lien
+ouvert depuis un ordinateur pendant que l'inscription a eu lieu sur
+mobile), aucun signal ne peut remonter sans backend poussant l'état
+(WebSocket dédié), hors scope pour ce MVP ; l'utilisateur retombe alors
+simplement sur `/connexion` comme avant, sans régression.
+
+**Vérification** : `pnpm typecheck` + `pnpm build` propres. Le nouvel
+écran a été vérifié visuellement (rendu, compte à rebours, désactivation
+du bouton) via un composant monté en isolation — impossible de déclencher
+un vrai `signUp()` dans cet environnement sans créer un compte réel sur le
+projet Supabase de production.
+
 ## Prochaines étapes suggérées
 
 1. Renseigner une vraie clé `ANTHROPIC_API_KEY` (actuellement un

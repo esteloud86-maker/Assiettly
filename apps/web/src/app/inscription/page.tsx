@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { ChampMotDePasse } from "@/components/auth/ChampMotDePasse";
+import { EcranVerificationEmail } from "@/components/auth/EcranVerificationEmail";
 import { createClient } from "@/lib/supabase/client";
 
 export default function InscriptionPage() {
@@ -23,7 +24,15 @@ export default function InscriptionPage() {
     }
     setLoading(true);
     const supabase = createClient();
-    const { data, error } = await supabase.auth.signUp({ email: email.trim(), password });
+    const { data, error } = await supabase.auth.signUp({
+      email: email.trim(),
+      password,
+      // Sans ça, le lien de confirmation ramène sur "/" avec un `code`
+      // jamais échangé contre une session : l'utilisateur ne se retrouve
+      // jamais connecté. /auth/callback échange le code puis redirige vers
+      // /accueil, qui renvoie lui-même vers /onboarding si besoin.
+      options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
+    });
     setLoading(false);
     if (error) {
       setErreur(error.message);
@@ -38,19 +47,7 @@ export default function InscriptionPage() {
   }
 
   if (inscrit) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-creme-100 px-4 text-center">
-        <div className="max-w-sm space-y-4">
-          <h1 className="font-titre text-2xl font-bold text-charbon-800">Vérifie ta boîte mail 📩</h1>
-          <p className="text-charbon-400">
-            Un e-mail de confirmation vient de t&rsquo;être envoyé. Confirme ton adresse pour commencer.
-          </p>
-          <Link href="/connexion" className="font-medium text-corail-600">
-            Retour à la connexion
-          </Link>
-        </div>
-      </div>
-    );
+    return <EcranVerificationEmail email={email.trim()} />;
   }
 
   return (
