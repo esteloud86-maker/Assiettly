@@ -97,7 +97,7 @@ export function AjouterRepasForm() {
   }
 
   return (
-    <div className="space-y-6 pb-24">
+    <div className="space-y-6 pb-32">
       <h1 className="font-titre text-2xl font-semibold text-charbon-800">Ajouter un repas</h1>
 
       <div className="flex flex-wrap gap-2">
@@ -105,7 +105,7 @@ export function AjouterRepasForm() {
           <button
             key={t.value}
             onClick={() => setType(t.value)}
-            className={`rounded-full border px-3 py-1.5 text-sm font-medium ${
+            className={`min-h-11 rounded-full border px-3 text-sm font-medium ${
               type === t.value
                 ? "border-corail-500 bg-corail-500 text-white"
                 : "border-creme-200 bg-creme-50 text-charbon-600"
@@ -147,7 +147,7 @@ export function AjouterRepasForm() {
         <label className="mb-2 block text-sm font-semibold text-charbon-800">Ou scanner un code-barres</label>
         <div className="flex gap-2">
           <input
-            className="flex-1 rounded-xl border border-creme-200 bg-creme-50 p-3"
+            className="min-w-0 flex-1 rounded-xl border border-creme-200 bg-creme-50 p-3"
             placeholder="Code-barres (EAN)"
             value={codeBarre}
             onChange={(e) => setCodeBarre(e.target.value)}
@@ -164,7 +164,7 @@ export function AjouterRepasForm() {
           <div className="space-y-2">
             {panier.map((item, i) => (
               <div key={i} className="flex items-center justify-between gap-3 rounded-xl bg-creme-50 p-3 shadow-sm">
-                <span className="flex-1 truncate">{item.nom}</span>
+                <span className="min-w-0 flex-1 truncate">{item.nom}</span>
                 <input
                   type="number"
                   className="w-20 rounded-lg border border-creme-200 p-1.5 text-right"
@@ -172,7 +172,11 @@ export function AjouterRepasForm() {
                   onChange={(e) => majQuantite(i, Number(e.target.value) || 0)}
                 />
                 <span className="text-sm text-charbon-400">g</span>
-                <button onClick={() => retirer(i)} className="px-1 text-corail-600">
+                <button
+                  onClick={() => retirer(i)}
+                  aria-label={`Retirer ${item.nom}`}
+                  className="flex h-11 w-11 shrink-0 items-center justify-center text-corail-600"
+                >
                   ✕
                 </button>
               </div>
@@ -183,7 +187,11 @@ export function AjouterRepasForm() {
 
       {erreur ? <p className="text-corail-600">{erreur}</p> : null}
 
-      <div className="fixed inset-x-0 bottom-0 border-t border-creme-200 bg-creme-100 p-4">
+      {/* Positionné au-dessus de la barre de navigation basse (fixe elle aussi)
+          plutôt qu'en bottom-0, pour ne jamais la recouvrir ni être recouvert
+          par elle — 64px correspond à la hauteur de son contenu, avant sa
+          propre zone de sécurité en bas. */}
+      <div className="fixed inset-x-0 bottom-[calc(64px+env(safe-area-inset-bottom))] border-t border-creme-200 bg-creme-100 p-4">
         <button
           onClick={valider}
           disabled={panier.length === 0 || isPending}

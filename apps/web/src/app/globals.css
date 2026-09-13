@@ -6,6 +6,39 @@ body {
   @apply bg-creme-100 text-charbon-800 font-corps;
 }
 
+/* Empêche le zoom automatique de Safari iOS quand un champ de saisie reçoit
+   le focus (déclenché par tout input dont le texte fait moins de 16px) —
+   filet de sécurité en plus des classes Tailwind, qui garantit ce
+   comportement même si une classe text-sm est ajoutée par erreur sur un
+   champ plus tard. */
+input,
+select,
+textarea {
+  font-size: 16px;
+}
+
+/* Zones sûres (encoche, Dynamic Island, barre de gestes) : classes
+   utilitaires appliquées au layout de base plutôt qu'écran par écran.
+   ⚠️ Ne les combine pas avec une classe Tailwind qui fixe le même padding
+   (ex. pb-8) sur le même élément : selon l'ordre du CSS généré, l'une
+   écraserait l'autre au lieu de s'additionner. S'il faut un padding de
+   base ET la zone sûre sur le même côté, utilise une valeur arbitraire
+   Tailwind du type `pb-[calc(2rem+env(safe-area-inset-bottom))]` à la
+   place. Ces classes ne servent que quand aucun autre padding n'est déjà
+   posé sur ce côté. */
+.safe-top {
+  padding-top: env(safe-area-inset-top);
+}
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.safe-left {
+  padding-left: env(safe-area-inset-left);
+}
+.safe-right {
+  padding-right: env(safe-area-inset-right);
+}
+
 /* Molette de l'onboarding (taille/poids/date) : scrollbar invisible, le
    scroll-snap natif fait le reste. */
 .molette-scroll {

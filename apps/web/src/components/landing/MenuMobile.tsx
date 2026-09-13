@@ -12,7 +12,7 @@ export function MenuMobile() {
         onClick={() => setOuvert((o) => !o)}
         aria-label="Menu"
         aria-expanded={ouvert}
-        className="flex h-9 w-9 items-center justify-center text-2xl text-charbon-800"
+        className="flex h-11 w-11 items-center justify-center text-2xl text-charbon-800"
       >
         {ouvert ? "✕" : "☰"}
       </button>

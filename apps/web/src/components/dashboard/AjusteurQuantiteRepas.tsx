@@ -23,7 +23,7 @@ export function AjusteurQuantiteRepas({ mealId, totalGrammes }: { mealId: string
         onClick={() => ajuster(-PAS_G)}
         disabled={isPending}
         aria-label="Réduire la portion"
-        className="flex h-9 w-9 items-center justify-center rounded-full bg-creme-200 text-lg font-semibold text-charbon-800 disabled:opacity-50"
+        className="flex h-11 w-11 items-center justify-center rounded-full bg-creme-200 text-lg font-semibold text-charbon-800 disabled:opacity-50"
       >
         −
       </button>
@@ -34,7 +34,7 @@ export function AjusteurQuantiteRepas({ mealId, totalGrammes }: { mealId: string
         onClick={() => ajuster(PAS_G)}
         disabled={isPending}
         aria-label="Augmenter la portion"
-        className="flex h-9 w-9 items-center justify-center rounded-full bg-creme-200 text-lg font-semibold text-charbon-800 disabled:opacity-50"
+        className="flex h-11 w-11 items-center justify-center rounded-full bg-creme-200 text-lg font-semibold text-charbon-800 disabled:opacity-50"
       >
         +
       </button>

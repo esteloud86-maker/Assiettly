@@ -77,9 +77,13 @@ export function OnboardingWizard() {
 
   const surEcranFinal = etape === ETAPES.length;
 
+  // h-[100dvh] (plutôt que min-h-screen) + zone de contenu overflow-y-auto :
+  // le header et le bouton "Continuer" restent toujours visibles, quelle
+  // que soit la hauteur du contenu de l'étape — seul le contenu défile si
+  // besoin sur un petit écran (iPhone SE), jamais le bouton d'action.
   if (surEcranFinal) {
     return (
-      <div className="mx-auto flex min-h-screen max-w-md flex-col px-4 py-10">
+      <div className="safe-top safe-bottom mx-auto flex h-[100dvh] max-w-md flex-col overflow-y-auto px-4 py-6">
         <EtapeCalculFinal profil={profil} onTermine={soumettre} erreur={erreur} />
       </div>
     );
@@ -88,18 +92,18 @@ export function OnboardingWizard() {
   const { composant: Etape, peutContinuer } = ETAPES[etape];
 
   return (
-    <div className="mx-auto flex min-h-screen max-w-md flex-col px-4 py-8">
-      <div className="mb-8 flex items-center gap-3">
+    <div className="safe-top safe-bottom mx-auto flex h-[100dvh] max-w-md flex-col px-4">
+      <div className="flex shrink-0 items-center gap-3 pb-6 pt-4">
         {etape > 0 ? (
           <button
             onClick={() => setEtape((e) => e - 1)}
             aria-label="Précédent"
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-creme-100 text-charbon-800"
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-creme-100 text-charbon-800"
           >
             ←
           </button>
         ) : (
-          <div className="h-9 w-9 shrink-0" />
+          <div className="h-11 w-11 shrink-0" />
         )}
         <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-creme-200">
           <div
@@ -109,17 +113,19 @@ export function OnboardingWizard() {
         </div>
       </div>
 
-      <div className="flex-1">
+      <div className="flex-1 overflow-y-auto">
         <Etape profil={profil} majProfil={majProfil} />
       </div>
 
-      <button
-        onClick={() => setEtape((e) => e + 1)}
-        disabled={!peutContinuer(profil)}
-        className="mt-8 w-full rounded-2xl bg-charbon-800 py-3.5 font-titre font-semibold text-white disabled:bg-creme-200 disabled:text-charbon-400"
-      >
-        Continuer
-      </button>
+      <div className="shrink-0 py-4">
+        <button
+          onClick={() => setEtape((e) => e + 1)}
+          disabled={!peutContinuer(profil)}
+          className="w-full rounded-2xl bg-charbon-800 py-3.5 font-titre font-semibold text-white disabled:bg-creme-200 disabled:text-charbon-400"
+        >
+          Continuer
+        </button>
+      </div>
     </div>
   );
 }

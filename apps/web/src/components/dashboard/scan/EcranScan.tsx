@@ -150,13 +150,17 @@ export function EcranScan() {
 
   if (etat === "resultat") {
     return (
-      <div className="mx-auto min-h-screen max-w-md space-y-6 bg-creme-100 px-4 py-6">
+      <div className="mx-auto min-h-screen max-w-md space-y-6 bg-creme-100 px-4 pb-[calc(1.5rem+env(safe-area-inset-bottom))] pt-[calc(1.5rem+env(safe-area-inset-top))]">
         <div className="flex items-center justify-between">
-          <Link href="/accueil" aria-label="Annuler" className="text-2xl text-charbon-800">
+          <Link
+            href="/accueil"
+            aria-label="Annuler"
+            className="flex h-11 w-11 items-center justify-center text-2xl text-charbon-800"
+          >
             ✕
           </Link>
           <span className="font-titre font-semibold text-charbon-800">Résultat du scan</span>
-          <div className="w-6" />
+          <div className="w-11" />
         </div>
 
         {confianceGlobale === "basse" ? (
@@ -179,7 +183,7 @@ export function EcranScan() {
             <button
               key={t.value}
               onClick={() => setType(t.value)}
-              className={`rounded-full border px-3 py-1.5 text-sm font-medium ${
+              className={`min-h-11 rounded-full border px-3 text-sm font-medium ${
                 type === t.value ? "border-corail-500 bg-corail-500 text-white" : "border-creme-200 bg-creme-50 text-charbon-600"
               }`}
             >
@@ -278,12 +282,12 @@ export function EcranScan() {
     <div className="fixed inset-0 z-50 flex flex-col bg-charbon-800 text-creme-50">
       <input ref={inputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={onFichierChoisi} />
 
-      <div className="flex items-center justify-between p-4">
-        <Link href="/accueil" aria-label="Fermer" className="text-2xl">
+      <div className="flex items-center justify-between p-4 pt-[calc(1rem+env(safe-area-inset-top))]">
+        <Link href="/accueil" aria-label="Fermer" className="flex h-11 w-11 items-center justify-center text-2xl">
           ✕
         </Link>
         <span className="font-titre font-semibold">Assiettly</span>
-        <span className="w-6" />
+        <span className="w-11" />
       </div>
 
       <div className="relative mx-4 flex-1 overflow-hidden rounded-3xl bg-gradient-to-br from-charbon-600 to-charbon-800">
@@ -296,7 +300,10 @@ export function EcranScan() {
           ) : etat === "erreur" ? (
             <div className="space-y-3">
               <p className="text-corail-400">{erreur}</p>
-              <button onClick={() => setEtat("inactif")} className="rounded-xl bg-creme-50 px-4 py-2 font-semibold text-charbon-800">
+              <button
+                onClick={() => setEtat("inactif")}
+                className="min-h-11 rounded-xl bg-creme-50 px-4 font-semibold text-charbon-800"
+              >
                 Réessayer
               </button>
             </div>
@@ -306,7 +313,7 @@ export function EcranScan() {
         </div>
       </div>
 
-      <div className="space-y-4 p-4">
+      <div className="space-y-4 p-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
         <div className="flex items-center justify-center gap-6">
           <button onClick={ouvrirCapture} disabled={etat === "analyse"} aria-label="Prendre une photo" className="h-16 w-16 rounded-full border-4 border-creme-50 bg-transparent disabled:opacity-50" />
         </div>

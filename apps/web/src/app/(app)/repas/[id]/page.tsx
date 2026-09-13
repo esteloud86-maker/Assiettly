@@ -47,7 +47,7 @@ export default async function DetailRepasPage({ params }: { params: { id: string
           <Link
             href="/accueil"
             aria-label="Retour"
-            className="flex h-9 w-9 items-center justify-center rounded-full bg-creme-50/90 text-charbon-800 shadow-sm"
+            className="flex h-11 w-11 items-center justify-center rounded-full bg-creme-50/90 text-charbon-800 shadow-sm"
           >
             ←
           </Link>

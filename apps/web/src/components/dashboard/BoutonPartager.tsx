@@ -11,7 +11,7 @@ export function BoutonPartager({ titre }: { titre: string }) {
     <button
       onClick={partager}
       aria-label="Partager"
-      className="flex h-9 w-9 items-center justify-center rounded-full bg-creme-50/90 text-charbon-800 shadow-sm"
+      className="flex h-11 w-11 items-center justify-center rounded-full bg-creme-50/90 text-charbon-800 shadow-sm"
     >
       ↗
     </button>

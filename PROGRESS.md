@@ -595,6 +595,133 @@ CREATE INDEX "food_analysis_logs_profile_id_idx" ON "food_analysis_logs"("profil
 ALTER TABLE "food_analysis_logs" ADD CONSTRAINT "food_analysis_logs_profile_id_fkey" FOREIGN KEY ("profile_id") REFERENCES "profiles"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 ```
 
+## Audit et corrections mobile-first
+
+Passage systématique de tout ce qui existait (onboarding, dashboard,
+landing/auth) au crible des principes mobile-first du brief. La landing
+reste la seule zone où le desktop compte un minimum ; partout ailleurs
+(onboarding, dashboard, scan, progrès), le desktop n'est qu'un "ça marche
+quand même" — aucun temps passé sur des breakpoints desktop dédiés pour ces
+écrans-là, conformément à la consigne.
+
+**Viewport et zones sûres, posés une fois dans le layout de base** :
+- `export const viewport` dans `app/layout.tsx` : `viewportFit: "cover"`
+  (indispensable pour que les `env(safe-area-inset-*)` renvoient de vraies
+  valeurs sur encoche/Dynamic Island/barre de gestes, sinon ils valent 0),
+  pas de `maximumScale`/`userScalable: false` — le pinch-to-zoom n'est
+  jamais désactivé (accessibilité), le zoom *involontaire* est évité
+  autrement (voir plus bas)
+- `globals.css` : `input, select, textarea { font-size: 16px }` en filet de
+  sécurité — c'est un texte sous 16px dans un champ qui déclenche le zoom
+  automatique de Safari iOS au focus, pas un réglage de viewport
+- Classes utilitaires `.safe-top`/`.safe-bottom`/`.safe-left`/`.safe-right`
+  dans `globals.css`, avec un avertissement explicite en commentaire : ne
+  jamais les combiner avec une classe Tailwind qui pose le même padding sur
+  le même élément (l'une écraserait l'autre selon l'ordre du CSS généré,
+  piège rencontré et corrigé pendant cet audit sur `MenuActionRapide`) —
+  dans ce cas, utiliser une valeur arbitraire du type
+  `pb-[calc(2rem+env(safe-area-inset-bottom))]` à la place
+
+**Bug réel trouvé et corrigé** : `BarreNavigation` (barre basse fixe,
+ajoutée lors du prompt dashboard) et la barre "Valider le repas" fixe de
+`AjouterRepasForm` (écran plus ancien) étaient toutes les deux
+`fixed inset-x-0 bottom-0` sur `/journal/ajouter` — la seconde se
+retrouvait entièrement masquée par la première, CTA principal inatteignable.
+Corrigé en positionnant la barre "Valider" au-dessus de la nav
+(`bottom-[calc(64px+env(safe-area-inset-bottom))]`) plutôt qu'au ras de
+l'écran. Repéré uniquement grâce à une capture d'écran à 320px — un bon
+rappel de pourquoi ce prompt demandait de tester à cette largeur avant de
+considérer un écran terminé.
+
+**Autre bug réel trouvé et corrigé** : le champ code-barres de
+`AjouterRepasForm` (`flex-1` sans `min-w-0` dans une rangée flex) poussait
+le bouton "OK" hors de l'écran à 320px — bug classique de Flexbox (un
+enfant flex ne rétrécit jamais sous la largeur de son contenu sans
+`min-w-0`). Corrigé, et vérifié qu'aucun autre `flex-1`/`truncate` du code
+n'avait le même problème (déjà correct ailleurs : `CarteRepasRecent`,
+`EcranScan`).
+
+**Onboarding — le bouton "Continuer" ne peut plus sortir de l'écran** :
+plutôt que de retoucher l'espacement de chacun des 13 écrans au cas par
+cas (fragile, à refaire à chaque nouvel écran), `OnboardingWizard.tsx` est
+restructuré une fois pour toutes : conteneur `h-[100dvh]` (hauteur de
+viewport dynamique — évite le bug classique `100vh` qui inclut la barre
+d'adresse mobile), header et bouton "Continuer" en `shrink-0`, seule la
+zone de contenu de l'étape est `flex-1 overflow-y-auto`. Résultat : le
+bouton reste **toujours visible**, quelle que soit la hauteur du contenu —
+c'est une garantie structurelle (CSS), pas un réglage à vérifier écran par
+écran. Vérifié à 320px et 375px sur les écrans Sexe et Date de naissance
+(hauteur réduite à 600px, proche d'un iPhone SE) : aucun débordement.
+
+**Zones tactiles ≥44×44px** (recommandation Apple/Android) : tous les
+boutons icône seuls qui faisaient 36px (`h-9 w-9`) sont passés à 44px
+(`h-11 w-11`) — bouton retour de l'onboarding, menu hamburger de la
+landing, partager/options/retour de l'écran de détail, +/- de l'ajusteur
+de portion, fermer/réessayer du scan. Les points de pagination
+(`PaginationPoints`) gardent un visuel de point fin, mais la zone cliquable
+réelle du bouton est maintenant 44×44px (centrage flex autour du point,
+pas la taille du point elle-même). Compromis assumé et documenté sur deux
+contrôles secondaires à faible fréquence d'usage : le sélecteur de période
+du graphique de poids (36px, 4 pastilles denses dans une carte) et les
+points du graphique lui-même — corrigés autrement (voir plus bas).
+
+**Cas pratique du principe "pas de hover-only"** : audit du code (aucune
+info/action cachée derrière un `:hover` seul trouvée — tous les usages de
+`hover:` sont des embellissements décoratifs sur des éléments déjà
+cliquables au tap). Le cas le plus concret restait le graphique
+d'évolution du poids : les points du tracé faisaient quelques pixels de
+rayon et réagissaient à `onMouseEnter`, illisible/impossible à toucher
+précisément au doigt. Plutôt que d'agrandir chaque point (ils se
+chevaucheraient sur un tracé dense), toute la largeur du graphique sert
+maintenant de zone tactile façon curseur : `onPointerDown`/`onPointerMove`
+calculent le point le plus proche de l'endroit touché — fonctionne aussi
+bien au doigt qu'à la souris, sans code spécifique tactile.
+
+**Scan caméra** : écran plein écran (`fixed inset-0`) avec zones sûres en
+haut (bouton fermer sous l'encoche/Dynamic Island) et en bas (déclencheur
+au-dessus de la barre de gestes). Le déclencheur (64px) reste centré en
+bas, atteignable au pouce à une main quelle que soit la main, comme
+demandé.
+
+**Clavier virtuel** : tous les champs de saisie sont à 16px (filet de
+sécurité global ci-dessus), donc aucun ne devrait déclencher de zoom
+involontaire au focus. Le défilement automatique d'un champ focus dans la
+zone visible est un comportement natif du navigateur (aucune app ne le
+désactive ici). **Limite honnête** : le comportement réel du clavier
+virtuel iOS/Android face aux barres fixes (est-ce qu'il les repousse
+proprement au-dessus du clavier ou les laisse-t-il masquées ?) n'a pas pu
+être testé dans ce sandbox, qui n'a pas de clavier tactile réel — à confier
+à un test sur téléphone physique avant lancement, en particulier sur
+`/journal/ajouter` (recherche d'aliment + deux barres fixes empilées).
+
+**Gestes natifs (swipe, pull-to-refresh)** : non implémentés
+délibérément. Le pull-to-refresh natif du navigateur (au sommet du scroll)
+n'est bloqué nulle part dans le code, donc il fonctionne déjà par défaut
+sans rien coder. Le swipe personnalisé entre jours du dashboard ou entre
+photos avant/après n'existe pas encore — le brief le qualifiait lui-même
+de "si pertinent"/"si la stack le permet nativement" ; vu l'ampleur déjà
+couverte par cet audit, ce point est noté comme amélioration future plutôt
+que traité maintenant.
+
+**Arbitrages desktop assumés** (documentés comme demandé, aucun retravaillé
+pour le desktop) :
+- Les 4 onglets + bouton central de `BarreNavigation` restent en une seule
+  rangée sur grand écran (pas de sidebar) — cohérent avec la consigne
+  explicite de ne pas construire de patterns "grand écran d'abord"
+- Le sélecteur de période du graphique de poids et le point de pagination
+  restent sous 44px — compromis assumé plutôt que de dégrader le visuel
+  d'un contrôle secondaire à faible fréquence
+- Le tableau comparatif et les cartes tarifs de la landing utilisent des
+  grilles qui s'élargissent sur desktop (`sm:`/`lg:`) — seule concession
+  desktop du projet, volontaire et scoping-limitée à la landing comme
+  prévu par le brief
+
+**Vérification** : `pnpm typecheck` + `pnpm build` propres. Testé
+visuellement à 375px et 320px (viewport réduit à 600-700px de haut pour
+simuler un iPhone SE) sur : onboarding (Sexe, Date de naissance),
+dashboard d'accueil, écran de scan, ajout de repas (avant/après le fix du
+bug de débordement), détail nutritionnel, écran Progrès.
+
 ## Prochaines étapes suggérées
 
 1. Renseigner une vraie clé `ANTHROPIC_API_KEY` (actuellement un

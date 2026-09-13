@@ -15,8 +15,8 @@ export function BarreNavigation() {
   const pathname = usePathname();
 
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-creme-200 bg-creme-50/95 backdrop-blur">
-      <div className="mx-auto flex max-w-4xl items-center justify-between px-4">
+    <nav className="safe-bottom fixed inset-x-0 bottom-0 z-40 border-t border-creme-200 bg-creme-50/95 backdrop-blur">
+      <div className="mx-auto flex max-w-4xl items-center justify-between px-2 sm:px-4">
         {ONGLETS.slice(0, 2).map((onglet) => (
           <OngletLien key={onglet.href} onglet={onglet} actif={pathname.startsWith(onglet.href)} />
         ))}
@@ -41,7 +41,7 @@ function OngletLien({
   return (
     <Link
       href={onglet.href}
-      className={`flex flex-1 flex-col items-center gap-0.5 py-2.5 text-xs font-medium ${
+      className={`flex min-h-11 flex-1 flex-col items-center justify-center gap-0.5 py-2.5 text-xs font-medium ${
         actif ? "text-corail-600" : "text-charbon-400"
       }`}
     >

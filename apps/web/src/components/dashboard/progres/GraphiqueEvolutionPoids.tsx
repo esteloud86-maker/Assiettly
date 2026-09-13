@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 
 interface Point {
   date: string;
@@ -27,6 +27,7 @@ export function GraphiqueEvolutionPoids({
 }) {
   const [periodeJours, setPeriodeJours] = useState<number | null>(90);
   const [indexSurvole, setIndexSurvole] = useState<number | null>(null);
+  const svgRef = useRef<SVGSVGElement>(null);
 
   const pointsFiltres = useMemo(() => {
     if (periodeJours === null) return points;
@@ -62,6 +63,29 @@ export function GraphiqueEvolutionPoids({
 
   const pointActif = indexSurvole !== null ? pointsFiltres[indexSurvole] : pointsFiltres.at(-1)!;
 
+  // Les points du tracé font quelques pixels de rayon — bien trop petits
+  // pour être ciblés précisément au doigt. Plutôt que d'agrandir chaque
+  // point (ce qui les ferait se chevaucher sur un tracé dense), toute la
+  // largeur du graphique sert de zone tactile : on prend le point le plus
+  // proche de l'endroit touché, comme un slider.
+  function survolerViaPosition(clientX: number) {
+    const svg = svgRef.current;
+    if (!svg) return;
+    const rect = svg.getBoundingClientRect();
+    const ratio = (clientX - rect.left) / rect.width;
+    const xViewBox = ratio * LARGEUR;
+    let plusProche = 0;
+    let ecartMin = Infinity;
+    coords.forEach((c, i) => {
+      const ecart = Math.abs(c.x - xViewBox);
+      if (ecart < ecartMin) {
+        ecartMin = ecart;
+        plusProche = i;
+      }
+    });
+    setIndexSurvole(plusProche);
+  }
+
   return (
     <div className="rounded-2xl bg-creme-50 p-6 shadow-sm">
       <div className="mb-1 flex items-center justify-between">
@@ -79,9 +103,12 @@ export function GraphiqueEvolutionPoids({
       </p>
 
       <svg
+        ref={svgRef}
         viewBox={`0 0 ${LARGEUR} ${HAUTEUR}`}
-        className="h-40 w-full"
+        className="h-40 w-full touch-none"
         onMouseLeave={() => setIndexSurvole(null)}
+        onPointerDown={(e) => survolerViaPosition(e.clientX)}
+        onPointerMove={(e) => e.buttons === 1 && survolerViaPosition(e.clientX)}
       >
         <line x1={MARGE} y1={HAUTEUR - MARGE} x2={LARGEUR - MARGE} y2={HAUTEUR - MARGE} className="stroke-creme-200" />
         <polyline
@@ -91,15 +118,7 @@ export function GraphiqueEvolutionPoids({
           strokeWidth="2"
         />
         {coords.map((c, i) => (
-          <circle
-            key={i}
-            cx={c.x}
-            cy={c.y}
-            r={i === indexSurvole ? 4 : 2.5}
-            className="fill-sarcelle-500"
-            onMouseEnter={() => setIndexSurvole(i)}
-            onClick={() => setIndexSurvole(i)}
-          />
+          <circle key={i} cx={c.x} cy={c.y} r={i === indexSurvole ? 4 : 2.5} className="fill-sarcelle-500" />
         ))}
       </svg>
 
@@ -108,7 +127,7 @@ export function GraphiqueEvolutionPoids({
           <button
             key={p.label}
             onClick={() => setPeriodeJours(p.valeur)}
-            className={`rounded-full px-3 py-1 text-xs font-medium ${
+            className={`min-h-9 rounded-full px-3 py-2 text-xs font-medium ${
               periodeJours === p.valeur ? "bg-corail-500 text-white" : "bg-creme-200 text-charbon-600"
             }`}
           >
