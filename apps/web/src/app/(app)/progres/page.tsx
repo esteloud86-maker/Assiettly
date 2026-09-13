@@ -51,7 +51,11 @@ export default async function ProgresPage() {
     const jour = new Date(ilYA6Jours);
     jour.setUTCDate(jour.getUTCDate() + i);
     const cle = jour.toISOString().slice(0, 10);
-    return { estAujourdHui: cle === cleAujourdHui, reussi: parDate.get(cle)?.flammeAllumee ?? false };
+    return {
+      estAujourdHui: cle === cleAujourdHui,
+      reussi: parDate.get(cle)?.flammeAllumee ?? false,
+      jourSemaine: (jour.getUTCDay() + 6) % 7,
+    };
   });
 
   const tendance = calculerTendance(

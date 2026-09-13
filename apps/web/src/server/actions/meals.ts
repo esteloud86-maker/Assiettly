@@ -247,7 +247,7 @@ export async function ajusterQuantiteRepas(mealId: string, deltaG: number) {
  */
 export async function obtenirTendanceCalories(jours = 7) {
   const profile = await requireProfile();
-  const aujourdHui = new Date();
+  const aujourdHui = new Date(new Date().toISOString().slice(0, 10) + "T00:00:00.000Z");
   const debutActuelle = new Date(aujourdHui);
   debutActuelle.setUTCDate(debutActuelle.getUTCDate() - jours + 1);
   const debutPrecedente = new Date(debutActuelle);

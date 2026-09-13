@@ -61,7 +61,11 @@ export function GraphiqueEvolutionPoids({
     y: HAUTEUR - MARGE - ((p.poidsKg - min) / echelle) * (HAUTEUR - 2 * MARGE),
   }));
 
-  const pointActif = indexSurvole !== null ? pointsFiltres[indexSurvole] : pointsFiltres.at(-1)!;
+  // indexSurvole peut référencer un point d'une période précédente (avec plus
+  // de points) : on retombe sur le dernier point si l'index n'est plus valide
+  // pour éviter un accès hors bornes après un changement de période.
+  const pointActif =
+    indexSurvole !== null && pointsFiltres[indexSurvole] ? pointsFiltres[indexSurvole] : pointsFiltres.at(-1)!;
 
   // Les points du tracé font quelques pixels de rayon — bien trop petits
   // pour être ciblés précisément au doigt. Plutôt que d'agrandir chaque
@@ -126,7 +130,10 @@ export function GraphiqueEvolutionPoids({
         {PERIODES.map((p) => (
           <button
             key={p.label}
-            onClick={() => setPeriodeJours(p.valeur)}
+            onClick={() => {
+              setPeriodeJours(p.valeur);
+              setIndexSurvole(null);
+            }}
             className={`min-h-9 rounded-full px-3 py-2 text-xs font-medium ${
               periodeJours === p.valeur ? "bg-corail-500 text-white" : "bg-creme-200 text-charbon-600"
             }`}

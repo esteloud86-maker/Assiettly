@@ -1,16 +1,31 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useState } from "react";
 import { ChampMotDePasse } from "@/components/auth/ChampMotDePasse";
 import { createClient } from "@/lib/supabase/client";
 
 export default function ConnexionPage() {
+  return (
+    <Suspense>
+      <ConnexionForm />
+    </Suspense>
+  );
+}
+
+function ConnexionForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [erreur, setErreur] = useState<string | null>(null);
+  // /auth/callback redirige ici avec ?erreur=auth quand un lien (confirmation
+  // d'e-mail ou réinitialisation de mot de passe) est invalide ou expiré —
+  // sans ça, l'utilisateur atterrissait sur /connexion sans aucune
+  // explication (échec silencieux).
+  const [erreur, setErreur] = useState<string | null>(
+    searchParams.get("erreur") === "auth" ? "Ce lien n'est plus valide ou a expiré. Réessaie." : null,
+  );
   const [loading, setLoading] = useState(false);
 
   async function seConnecter(e: React.FormEvent) {

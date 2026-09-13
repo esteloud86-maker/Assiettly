@@ -63,6 +63,7 @@ export function BoutonsOAuth() {
   return (
     <div className="space-y-2">
       <button
+        type="button"
         onClick={() => connecter("google")}
         disabled={chargement !== null}
         className="flex w-full items-center justify-center gap-2 rounded-xl border border-creme-200 bg-white py-3 font-medium text-charbon-800 disabled:opacity-50"
@@ -71,6 +72,7 @@ export function BoutonsOAuth() {
         {chargement === "google" ? "Redirection..." : "Continuer avec Google"}
       </button>
       <button
+        type="button"
         onClick={() => connecter("apple")}
         disabled={chargement !== null}
         className="flex w-full items-center justify-center gap-2 rounded-xl border border-creme-200 bg-white py-3 font-medium text-charbon-800 disabled:opacity-50"

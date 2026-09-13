@@ -24,6 +24,16 @@ const AJUSTEMENT_OBJECTIF_KCAL: Record<ObjectifType, number> = {
   PRISE_MASSE: 300,
 };
 
+// Plancher calorique de sécurité : quel que soit le déficit calculé, on ne
+// descend jamais sous ce seuil (repères usuels de sécurité nutritionnelle :
+// ~1200 kcal/j pour une femme, ~1500 kcal/j pour un homme). Pour "AUTRE",
+// on retient le plancher le plus prudent (le plus élevé des deux).
+const PLANCHER_CALORIES_KCAL: Record<ProfilPhysique["sexe"], number> = {
+  FEMME: 1200,
+  HOMME: 1500,
+  AUTRE: 1500,
+};
+
 function ageEnAnnees(dateNaissanceIso: string, aujourdHui = new Date()): number {
   const naissance = new Date(dateNaissanceIso);
   let age = aujourdHui.getFullYear() - naissance.getFullYear();
@@ -57,7 +67,8 @@ export function calculerTDEE(profil: ProfilPhysique): number {
  */
 export function calculerObjectifs(profil: ProfilPhysique): MacroTargets {
   const tdee = calculerTDEE(profil);
-  const caloriesKcal = Math.round(tdee + AJUSTEMENT_OBJECTIF_KCAL[profil.objectifType]);
+  const cible = tdee + AJUSTEMENT_OBJECTIF_KCAL[profil.objectifType];
+  const caloriesKcal = Math.round(Math.max(cible, PLANCHER_CALORIES_KCAL[profil.sexe]));
 
   const proteinesG = Math.round((caloriesKcal * 0.3) / 4);
   const glucidesG = Math.round((caloriesKcal * 0.4) / 4);

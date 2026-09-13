@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { BoutonAbonnement } from "@/app/paywall/BoutonAbonnement";
 import { demarrerAbonnement } from "@/server/actions/billing";
 import { requireProfile } from "@/server/auth";
 import { estPremium } from "@/server/billing";
@@ -39,17 +40,14 @@ export default async function PaywallPage() {
 
       <div className="mt-8 space-y-3">
         <form action={demarrerAbonnement.bind(null, "annuel")}>
-          <button type="submit" className="w-full rounded-2xl bg-corail-500 py-4 font-titre font-semibold text-white">
+          <BoutonAbonnement className="w-full rounded-2xl bg-corail-500 py-4 font-titre font-semibold text-white">
             Essai gratuit — puis 49,99€/an
-          </button>
+          </BoutonAbonnement>
         </form>
         <form action={demarrerAbonnement.bind(null, "mensuel")}>
-          <button
-            type="submit"
-            className="w-full rounded-2xl border border-creme-200 bg-creme-50 py-4 font-titre font-semibold text-charbon-800"
-          >
+          <BoutonAbonnement className="w-full rounded-2xl border border-creme-200 bg-creme-50 py-4 font-titre font-semibold text-charbon-800">
             Essai gratuit — puis 6,99€/mois
-          </button>
+          </BoutonAbonnement>
         </form>
       </div>
 

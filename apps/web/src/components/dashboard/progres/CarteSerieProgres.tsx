@@ -7,7 +7,9 @@ export function CarteSerieProgres({
   semaine,
 }: {
   streakActuel: number;
-  semaine: { estAujourdHui: boolean; reussi: boolean }[];
+  // jourSemaine : 0 = lundi ... 6 = dimanche, pour aligner la bonne initiale
+  // même si `semaine` ne commence pas un lundi (fenêtre glissante de 7 jours).
+  semaine: { estAujourdHui: boolean; reussi: boolean; jourSemaine: number }[];
 }) {
   return (
     <div className="rounded-2xl bg-creme-50 p-4 shadow-sm">
@@ -19,7 +21,7 @@ export function CarteSerieProgres({
       <div className="mt-3 flex justify-between">
         {semaine.map((jour, i) => (
           <div key={i} className="flex flex-col items-center gap-1">
-            <span className="text-[10px] font-medium text-charbon-400">{INITIALES_JOURS[i]}</span>
+            <span className="text-[10px] font-medium text-charbon-400">{INITIALES_JOURS[jour.jourSemaine]}</span>
             <span
               className={`flex h-5 w-5 items-center justify-center rounded-full text-[10px] ${
                 jour.reussi

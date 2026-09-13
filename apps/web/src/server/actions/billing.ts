@@ -19,10 +19,20 @@ export async function demarrerAbonnement(formule: FormuleAbonnement) {
 
   let stripeCustomerId = profile.stripeCustomerId;
   if (!stripeCustomerId) {
-    const customer = await stripe.customers.create({
-      email: profile.email,
-      metadata: { profileId: profile.id },
-    });
+    // Clé d'idempotence stable par profil : si l'utilisateur double-clique
+    // (ou si deux requêtes concurrentes arrivent avant que le premier
+    // `prisma.profile.update` ne soit visible), Stripe renvoie le même
+    // client au lieu d'en créer un second — sans ça, la requête la plus
+    // lente écrase `stripeCustomerId` en base avec un client Stripe
+    // différent de celui utilisé pour la session de paiement en cours,
+    // cassant ensuite le portail d'abonnement.
+    const customer = await stripe.customers.create(
+      {
+        email: profile.email,
+        metadata: { profileId: profile.id },
+      },
+      { idempotencyKey: `stripe-customer-${profile.id}` },
+    );
     stripeCustomerId = customer.id;
     await prisma.profile.update({ where: { id: profile.id }, data: { stripeCustomerId } });
   }
