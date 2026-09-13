@@ -30,5 +30,9 @@ export async function enregistrerAbonnementPush(abonnement: AbonnementPushInput)
 
 /** Retire l'abonnement push du profil courant (ex: désactivation depuis le profil). */
 export async function supprimerAbonnementPush(endpoint: string) {
-  await prisma.pushSubscription.deleteMany({ where: { endpoint } });
+  const profile = await requireProfile();
+  // Scoper par profileId (en plus de l'endpoint) empêche un appelant de
+  // supprimer l'abonnement push d'un autre profil en devinant/rejouant un
+  // endpoint qui ne lui appartient pas.
+  await prisma.pushSubscription.deleteMany({ where: { endpoint, profileId: profile.id } });
 }

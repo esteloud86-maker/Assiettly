@@ -89,11 +89,14 @@ export const mealItemInputSchema = z.object({
   nomLibre: z.string().min(1).max(200).optional(),
   quantiteG: z.number().min(1).max(5000),
   // requis si foodId absent (aliment "libre" saisi à la main sans fiche nutritionnelle)
-  caloriesKcal: z.number().min(0).optional(),
-  proteinesG: z.number().min(0).optional(),
-  glucidesG: z.number().min(0).optional(),
-  lipidesG: z.number().min(0).optional(),
-  fibresG: z.number().min(0).optional(),
+  // Bornes hautes généreuses (aucun aliment réel ne les atteint) qui servent
+  // uniquement de garde-fou contre une saisie/valeur aberrante (typo, bug
+  // client) avant écriture en base.
+  caloriesKcal: z.number().min(0).max(10_000).optional(),
+  proteinesG: z.number().min(0).max(2_000).optional(),
+  glucidesG: z.number().min(0).max(2_000).optional(),
+  lipidesG: z.number().min(0).max(2_000).optional(),
+  fibresG: z.number().min(0).max(500).optional(),
 });
 
 export const createMealSchema = z.object({

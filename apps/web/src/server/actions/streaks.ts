@@ -2,6 +2,7 @@
 
 import { FREEZES_MAX_PAR_MOIS, freezeStreakSchema, palierAtteint, prochainPalier } from "@assiettly/shared";
 import { revalidatePath } from "next/cache";
+import { aujourdHuiLocalCommeDate } from "@/lib/date";
 import { prisma } from "@/lib/prisma";
 import { requireProfile } from "@/server/auth";
 import { geler } from "@/server/streak";
@@ -11,7 +12,7 @@ export async function obtenirResumeStreak() {
   const summary = await prisma.streakSummary.findUnique({ where: { profileId: profile.id } });
   const streakActuel = summary?.streakActuel ?? 0;
 
-  const now = new Date();
+  const now = aujourdHuiLocalCommeDate();
   const memeMois =
     summary?.moisReferenceFreeze &&
     summary.moisReferenceFreeze.getUTCFullYear() === now.getUTCFullYear() &&

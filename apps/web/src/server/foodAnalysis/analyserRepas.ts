@@ -1,4 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
+import { ZodError } from "zod";
 import { anthropic } from "@/lib/anthropic";
 import { prisma } from "@/lib/prisma";
 import { hacherImage, lireDuCache, ecrireDansLeCache } from "./cache";
@@ -87,6 +88,15 @@ export async function analyserPhotoRepas({
     if (erreur instanceof ErreurReponseInvalide) {
       await journaliserAppel({ profileId, dureeMs: Date.now() - debut, erreur: erreur.message });
       throw erreur;
+    }
+    // Le JSON renvoyé par le modèle est bien formé mais ne respecte pas le
+    // schéma attendu (ex: dérive du modèle malgré les structured outputs) :
+    // sans ce garde-fou, le ZodError brut remontait tel quel jusqu'au client
+    // au lieu du message utilisateur propre d'ErreurReponseInvalide.
+    if (erreur instanceof ZodError) {
+      const erreurTypee = new ErreurReponseInvalide("La réponse du modèle n'a pas le format attendu.");
+      await journaliserAppel({ profileId, dureeMs: Date.now() - debut, erreur: erreurTypee.message });
+      throw erreurTypee;
     }
     if (erreur instanceof Anthropic.APIConnectionTimeoutError) {
       await journaliserAppel({ profileId, dureeMs: Date.now() - debut, erreur: "timeout" });
