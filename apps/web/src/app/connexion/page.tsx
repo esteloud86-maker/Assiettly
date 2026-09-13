@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { BoutonsOAuth } from "@/components/auth/BoutonsOAuth";
+import { ChampMotDePasse } from "@/components/auth/ChampMotDePasse";
 import { createClient } from "@/lib/supabase/client";
 
 export default function ConnexionPage() {
@@ -31,20 +31,12 @@ export default function ConnexionPage() {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-creme-100 px-4 py-10">
-      <div className="w-full max-w-sm space-y-5">
+      <div className="w-full max-w-sm space-y-8">
         <div className="text-center">
           <Link href="/" className="font-titre text-3xl font-bold text-charbon-800">
             Assiettly
           </Link>
-          <p className="mt-1 text-charbon-400">Content de te revoir 👋</p>
-        </div>
-
-        <BoutonsOAuth />
-
-        <div className="flex items-center gap-3 text-xs text-charbon-400">
-          <div className="h-px flex-1 bg-creme-200" />
-          ou avec ton e-mail
-          <div className="h-px flex-1 bg-creme-200" />
+          <p className="mt-2 text-charbon-400">Content de te revoir 👋</p>
         </div>
 
         <form onSubmit={seConnecter} className="space-y-4">
@@ -56,13 +48,11 @@ export default function ConnexionPage() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
           />
-          <input
-            className="w-full rounded-xl border border-creme-200 bg-creme-50 p-3.5"
-            placeholder="Mot de passe"
-            type="password"
-            autoComplete="current-password"
+          <ChampMotDePasse
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            onChange={setPassword}
+            placeholder="Mot de passe"
+            autoComplete="current-password"
           />
 
           <div className="text-right">
@@ -75,7 +65,7 @@ export default function ConnexionPage() {
 
           <button
             type="submit"
-            disabled={loading}
+            disabled={loading || !email || !password}
             className="w-full rounded-xl bg-corail-500 py-3.5 font-titre font-semibold text-white disabled:opacity-50"
           >
             {loading ? "Connexion..." : "Se connecter"}

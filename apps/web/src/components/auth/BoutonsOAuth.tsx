@@ -1,5 +1,13 @@
 "use client";
 
+/**
+ * ⚠️ Désactivé temporairement (bug en cours d'investigation sur la
+ * connexion Google/Apple) — retiré des écrans /connexion et /inscription,
+ * mais volontairement gardé tel quel plutôt que supprimé : Google/Apple
+ * restent au plan produit, ce composant est prêt à être réimporté une
+ * fois le bug corrigé. Voir PROGRESS.md.
+ */
+
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 

@@ -830,6 +830,39 @@ façon garantie en local. Le chemin de repli (message manuel) a donc été
 le seul testable dans ce sandbox ; le vrai bouton natif est à confirmer
 sur un Android réel avant lancement.
 
+## Connexion/inscription : Google et Apple désactivés temporairement
+
+Les boutons "Continuer avec Google/Apple" posaient des bugs en usage réel.
+**Retirés de l'interface, mais pas du plan produit** : `BoutonsOAuth.tsx`
+n'est plus importé nulle part (ni `/connexion` ni `/inscription`) mais
+reste en l'état dans le code, avec un commentaire explicite en tête de
+fichier expliquant pourquoi il est isolé et comment le réactiver (il
+suffit de le réimporter une fois le bug d'origine identifié et corrigé —
+rien à réécrire). Le séparateur "ou avec ton e-mail" disparaît avec eux :
+le formulaire email/mot de passe est redevenu le seul moyen de connexion,
+donc plus rien à distinguer visuellement.
+
+**Afficher/masquer le mot de passe** : nouveau composant partagé
+`ChampMotDePasse.tsx` (utilisé sur les deux écrans plutôt que dupliqué) —
+icône œil/œil barré dans le champ, zone de tap 44×44px (largeur du bouton
+44px × pleine hauteur du champ), bascule `type="password"`/`type="text"`.
+
+**Bouton de connexion/inscription réellement désactivé tant que les
+champs sont vides** : ce n'était pas le cas avant (seul `loading`
+désactivait le bouton) — ajouté `disabled={loading || !email || !password}`
+sur les deux écrans, vérifié à l'exécution.
+
+**Réagencement** : espacement vertical un peu plus généreux
+(`space-y-5` → `space-y-8` entre les blocs) maintenant qu'il y a moins
+d'éléments, pour que l'écran garde une composition équilibrée plutôt que
+de paraître clairsemé.
+
+**Vérification** : `pnpm typecheck` + `pnpm build` propres (taille des
+bundles `/connexion` et `/inscription` en baisse, confirmant que le code
+OAuth n'est plus embarqué) ; testé visuellement — bouton bien désactivé à
+vide et activé une fois les deux champs remplis, bascule œil/œil barré
+confirmée (`type` du champ passe de `password` à `text` au clic).
+
 ## Prochaines étapes suggérées
 
 1. Renseigner une vraie clé `ANTHROPIC_API_KEY` (actuellement un
@@ -839,8 +872,9 @@ sur un Android réel avant lancement.
 2. Tester l'installation PWA sur un vrai téléphone Android (le prompt
    natif `beforeinstallprompt` dépend des heuristiques de Chrome,
    impossible à garantir en local) et sur iOS (tutoriel manuel)
-3. Activer les fournisseurs Google et Apple dans Supabase Auth (Authentication
-   → Providers) pour que les boutons OAuth de connexion/inscription
+3. Diagnostiquer le bug de connexion Google/Apple (désactivée côté
+   interface entre-temps, cf. plus bas), puis activer les fournisseurs
+   dans Supabase Auth (Authentication → Providers) pour que les boutons OAuth
    fonctionnent réellement
 4. Vérifier le domaine `assiettly.fr` sur Resend et renseigner les clés
 5. Implémenter les Groupes (V2) : création/invitation, classement par
