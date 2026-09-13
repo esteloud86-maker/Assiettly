@@ -1022,6 +1022,95 @@ données réelles ici pour les auditer visuellement. À revérifier sur un
 environnement avec accès à la base (ou en production) si d'autres
 problèmes d'alignement sont repérés dans le dashboard.
 
+## Audit de bugs sur tout le SaaS
+
+Suite à la demande "règle tous les bugs du SaaS", quatre passes d'audit
+indépendantes (repas/scan/streak, dashboard/progrès, onboarding/calculs,
+auth/paywall/Stripe) ont couvert l'ensemble du code serveur et des
+composants. Bugs réels trouvés et corrigés (au-delà de ceux déjà listés
+plus haut dans cette section) :
+
+**Sécurité / autorisation**
+- `supprimerAbonnementPush` ne vérifiait pas que l'abonnement push
+  supprimé appartenait bien à l'appelant — scopé par `profileId`
+- **Quota de scans gratuits jamais appliqué** : la landing et le paywall
+  annoncent "3 scans de repas par semaine" pour l'offre gratuite, mais
+  rien ne le faisait respecter — n'importe quel utilisateur non-Premium
+  avait des scans IA illimités. Ajouté dans `scan.ts` : comptage des
+  analyses réussies des 7 derniers jours glissants via `FoodAnalysisLog`
+  (déjà en base, aucune migration nécessaire), bloqué au-delà de 3 pour
+  les profils non premium
+
+**Races / concurrence**
+- `geler` (freeze de streak) : lire-vérifier-écrire le compteur mensuel
+  non atomique, permettait de dépasser la limite de 2 freezes/mois par
+  double-tap — transaction `SERIALIZABLE`
+- `chercherParCodeBarre` : deux scans concurrents du même code-barres
+  inédit plantaient sur la contrainte unique — récupère l'enregistrement
+  créé par l'autre appel
+- `demarrerAbonnement` (Stripe) : deux clics concurrents pouvaient créer
+  deux clients Stripe différents pour le même profil — clé d'idempotence
+  Stripe ajoutée, bouton de paywall désactivé pendant la redirection
+
+**Fuseau horaire** — nouveau `src/lib/date.ts`, calcule "aujourd'hui" sur
+Europe/Paris plutôt que l'horloge UTC du serveur/navigateur. Sans ça,
+entre ~22h/23h UTC et minuit UTC (0h-2h du matin en France selon la
+saison), le dashboard, le journal, les tendances de calories, le résumé
+de streak et le calendrier mensuel raisonnaient encore sur "hier".
+Appliqué à `accueil/page.tsx`, `journal/page.tsx`, `progres/page.tsx`,
+`CalendrierMensuel.tsx`, `obtenirSemaineDashboard`,
+`obtenirTendanceCalories`, `obtenirResumeStreak`, `terminerOnboarding`, et
+côté client à `PoidsForm.tsx`, `AjouterRepasForm.tsx`, `EcranScan.tsx`
+(tous utilisaient `new Date().toISOString().slice(0,10)`, qui reste en UTC
+même dans le navigateur).
+
+**Calculs / plafond de sécurité**
+- `calculerObjectifs` (packages/shared) : aucun plancher sur l'objectif
+  calorique calculé — pouvait descendre sous 700 kcal/j pour un profil
+  petit/âgé/sédentaire en perte de poids. Plancher ajouté (1200 kcal
+  femme, 1500 kcal homme/autre)
+- `obtenirTendanceCalories` : frontière 7 jours / 7 jours précédents basée
+  sur l'heure courante au lieu de minuit — décalait le classement d'un
+  repas selon l'heure de chargement de la page
+
+**Crash / états limites**
+- `GraphiqueEvolutionPoids` : changer de filtre de période (90j/6 mois/1
+  an/Tout) après avoir survolé un point pouvait laisser un index hors
+  bornes et planter le graphique de poids
+- `ajusterQuantiteRepas` : `deltaG` non validé (NaN/valeur extrême)
+  pouvait produire un total absurde ou faire déborder une colonne Decimal
+- `ajouterRepas` : un `foodId` invalide/supprimé produisait une erreur
+  Prisma peu explicite au lieu d'un message clair
+- `openFoodFacts.ts` : panne du service externe (réseau, timeout)
+  plantait l'action de recherche par code-barres — encapsulé, timeout 8s
+- `analyserRepas.ts` : une réponse JSON hors schéma remontait l'erreur
+  Zod brute au client au lieu du message utilisateur prévu
+
+**UI / affichage**
+- `CarteSerieProgres` : les initiales de jours (L M M J V S D) étaient
+  indexées par position dans la fenêtre glissante "aujourd'hui − 6 jours"
+  au lieu du vrai jour de la semaine — faux sauf quand "aujourd'hui" tombe
+  un dimanche
+- `connexion/page.tsx` : `/auth/callback?erreur=auth` (lien expiré/invalide)
+  redirigeait vers la connexion sans jamais afficher de message — échec
+  totalement silencieux, corrigé
+- `mealItemInputSchema` (aliment libre) : aucune borne haute sur les
+  valeurs nutritionnelles saisies à la main — bornes ajoutées
+- `BoutonsOAuth.tsx` : `type="button"` ajouté (composant dormant mais
+  casserait le formulaire dès sa réactivation)
+
+**Vérification** : `pnpm typecheck` et `pnpm build` propres après chaque
+lot de correctifs. Aucune migration Prisma nécessaire — tous les
+correctifs sont dans la logique applicative ou les colonnes déjà
+existantes.
+
+**Note produit non résolue** (signalée par un audit, décision produit
+requise, pas corrigée unilatéralement) : `streakActuel` n'est recalculé
+que lors d'une action (repas ajouté, freeze) — un streak cassé par pure
+inaction reste affiché comme intact jusqu'à la prochaine action de
+l'utilisateur. Nécessiterait un job planifié pour recalculer
+proactivement ; pas fait ici.
+
 ## Prochaines étapes suggérées
 
 1. Renseigner une vraie clé `ANTHROPIC_API_KEY` (actuellement un

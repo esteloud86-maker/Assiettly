@@ -12,6 +12,13 @@ export class ErreurQuotaAnthropic extends Error {
   }
 }
 
+export class ErreurQuotaScanGratuit extends Error {
+  constructor(message = "Tu as atteint la limite de 3 scans par semaine de l'offre gratuite. Passe en Premium pour scanner sans limite.") {
+    super(message);
+    this.name = "ErreurQuotaScanGratuit";
+  }
+}
+
 export class ErreurReponseInvalide extends Error {
   constructor(message = "La réponse de l'analyse n'a pas le format attendu.") {
     super(message);

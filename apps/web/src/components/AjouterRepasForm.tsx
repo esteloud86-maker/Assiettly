@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
+import { aujourdHuiLocal } from "@/lib/date";
 import { ajouterRepas, chercherParCodeBarre, rechercherAliments } from "@/server/actions/meals";
 
 type MealType = "PETIT_DEJ" | "DEJEUNER" | "DINER" | "COLLATION";
@@ -85,7 +86,7 @@ export function AjouterRepasForm() {
     startTransition(async () => {
       try {
         await ajouterRepas({
-          date: new Date().toISOString().slice(0, 10),
+          date: aujourdHuiLocal(),
           type,
           items: panier.map(({ foodId, quantiteG }) => ({ foodId, quantiteG })),
         });

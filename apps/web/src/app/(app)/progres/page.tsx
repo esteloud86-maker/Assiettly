@@ -4,6 +4,7 @@ import { CartePoidsActuel } from "@/components/dashboard/progres/CartePoidsActue
 import { CarteSerieProgres } from "@/components/dashboard/progres/CarteSerieProgres";
 import { GraphiqueEvolutionPoids } from "@/components/dashboard/progres/GraphiqueEvolutionPoids";
 import { MessageEncouragement, type TendancePoids } from "@/components/dashboard/progres/MessageEncouragement";
+import { aujourdHuiLocalCommeDate } from "@/lib/date";
 import { obtenirTendanceCalories } from "@/server/actions/meals";
 import { requireProfile } from "@/server/auth";
 import { obtenirCalendrierStreak, obtenirResumeStreak } from "@/server/actions/streaks";
@@ -29,7 +30,7 @@ function calculerTendance(
 export default async function ProgresPage() {
   const profile = await requireProfile();
 
-  const aujourdHui = new Date();
+  const aujourdHui = aujourdHuiLocalCommeDate();
   const ilYA6Jours = new Date(aujourdHui);
   ilYA6Jours.setUTCDate(ilYA6Jours.getUTCDate() - 6);
 

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { aujourdHuiLocal } from "@/lib/date";
 import { obtenirRepasDuJour, supprimerRepas } from "@/server/actions/meals";
 
 const LIBELLES_TYPE: Record<string, string> = {
@@ -9,7 +10,7 @@ const LIBELLES_TYPE: Record<string, string> = {
 };
 
 export default async function JournalPage() {
-  const aujourdHui = new Date().toISOString().slice(0, 10);
+  const aujourdHui = aujourdHuiLocal();
   const { meals, totaux } = await obtenirRepasDuJour(aujourdHui);
 
   return (

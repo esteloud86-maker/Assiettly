@@ -3,6 +3,7 @@ import { CarteRepasRecent } from "@/components/dashboard/CarteRepasRecent";
 import { CartesMacroPaginees } from "@/components/dashboard/CartesMacroPaginees";
 import { EtatVide } from "@/components/dashboard/primitives/EtatVide";
 import { SelecteurJoursSemaine } from "@/components/dashboard/SelecteurJoursSemaine";
+import { aujourdHuiLocal } from "@/lib/date";
 import { obtenirRepasDuJour, obtenirSemaineDashboard } from "@/server/actions/meals";
 import { requireProfile } from "@/server/auth";
 
@@ -13,7 +14,7 @@ const OBJECTIF_FIBRES_G = 25;
 export default async function AccueilPage() {
   const profile = await requireProfile();
   const goal = profile.goals[0];
-  const aujourdHui = new Date().toISOString().slice(0, 10);
+  const aujourdHui = aujourdHuiLocal();
 
   const [{ meals, totaux }, joursSemaine] = await Promise.all([
     obtenirRepasDuJour(aujourdHui),

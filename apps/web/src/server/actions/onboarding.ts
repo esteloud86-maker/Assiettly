@@ -6,6 +6,7 @@ import type { Frein, MotivationPrincipale, TypeAlimentation } from "@assiettly/s
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { Bienvenue } from "../../../emails/Bienvenue";
+import { aujourdHuiLocal } from "@/lib/date";
 import { prisma } from "@/lib/prisma";
 import { RESEND_FROM_EMAIL, resend } from "@/lib/resend";
 import { requireProfile } from "@/server/auth";
@@ -35,7 +36,7 @@ export async function terminerOnboarding(input: OnboardingInput) {
   const data = onboardingSchema.parse(input);
   const profile = await requireProfile();
 
-  const aujourdHui = new Date().toISOString().slice(0, 10);
+  const aujourdHui = aujourdHuiLocal();
 
   await prisma.$transaction([
     prisma.profile.update({

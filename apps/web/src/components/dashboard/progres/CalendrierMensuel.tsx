@@ -1,3 +1,4 @@
+import { aujourdHuiLocalCommeDate } from "@/lib/date";
 import { obtenirCalendrierStreak } from "@/server/actions/streaks";
 
 const JOURS_SEMAINE = ["L", "M", "M", "J", "V", "S", "D"];
@@ -7,7 +8,7 @@ const MOIS = [
 ];
 
 export async function CalendrierMensuel() {
-  const maintenant = new Date();
+  const maintenant = aujourdHuiLocalCommeDate();
   const annee = maintenant.getUTCFullYear();
   const mois = maintenant.getUTCMonth();
 

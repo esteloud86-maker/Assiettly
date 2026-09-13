@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
+import { aujourdHuiLocal } from "@/lib/date";
 import { ajouterRepas } from "@/server/actions/meals";
 import { analyserPhoto } from "@/server/actions/scan";
 import type { AnalyseRepas, NiveauConfiance } from "@/server/foodAnalysis/schema";
@@ -129,7 +130,7 @@ export function EcranScan() {
     setEnregistrement(true);
     try {
       await ajouterRepas({
-        date: new Date().toISOString().slice(0, 10),
+        date: aujourdHuiLocal(),
         type,
         items: items.map((it) => ({
           nomLibre: it.nom,

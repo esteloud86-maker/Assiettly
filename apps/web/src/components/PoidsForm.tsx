@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
+import { aujourdHuiLocal } from "@/lib/date";
 import { enregistrerPoids } from "@/server/actions/weight";
 
 export function PoidsForm() {
@@ -13,7 +14,7 @@ export function PoidsForm() {
     const poidsKg = Number(valeur.replace(",", "."));
     if (!poidsKg || poidsKg <= 0) return;
     startTransition(async () => {
-      await enregistrerPoids({ poidsKg, date: new Date().toISOString().slice(0, 10) });
+      await enregistrerPoids({ poidsKg, date: aujourdHuiLocal() });
       setValeur("");
       router.refresh();
     });
