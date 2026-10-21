@@ -42,8 +42,19 @@ export async function demarrerAbonnement(formule: FormuleAbonnement) {
     customer: stripeCustomerId,
     mode: "subscription",
     line_items: [{ price: PRICE_IDS[formule], quantity: 1 }],
+    // Par défaut, Stripe Checkout demande une carte même pour un essai à
+    // 0 € dû aujourd'hui. "if_required" ne la demande que si un paiement
+    // est réellement dû à la session — sans ça, l'essai "sans carte
+    // bancaire" annoncé sur la landing et le paywall serait faux.
+    payment_method_collection: "if_required",
     subscription_data: {
       trial_period_days: DUREE_ESSAI_JOURS,
+      // Si l'essai se termine sans carte enregistrée, Stripe annule
+      // proprement l'abonnement au lieu de le laisser en attente de
+      // paiement indéfiniment — le webhook (`customer.subscription.deleted`)
+      // repasse alors le profil en statut non premium, et l'app retombe
+      // d'elle-même sur le quota gratuit sans action manuelle.
+      trial_settings: { end_behavior: { missing_payment_method: "cancel" } },
       metadata: { profileId: profile.id },
     },
     success_url: `${appUrl}/accueil?abonnement=succes`,

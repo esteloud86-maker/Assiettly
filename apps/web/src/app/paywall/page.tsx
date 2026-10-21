@@ -1,16 +1,12 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { BoutonAbonnement } from "@/app/paywall/BoutonAbonnement";
+import { SCANS_GRATUITS_PAR_JOUR, TARIFS } from "@/lib/pricing";
 import { demarrerAbonnement } from "@/server/actions/billing";
 import { requireProfile } from "@/server/auth";
 import { estPremium } from "@/server/billing";
 
-const AVANTAGES_PREMIUM = [
-  "Scans de repas par photo illimités",
-  "Historique complet et export de tes données",
-  "Coach IA pour ajuster tes objectifs",
-  "Badges exclusifs et défis entre amis (bientôt)",
-];
+const AVANTAGES_PREMIUM = ["Scans de repas par photo illimités", "Badges exclusifs et défis entre amis (bientôt)"];
 
 export default async function PaywallPage() {
   const profile = await requireProfile();
@@ -21,12 +17,14 @@ export default async function PaywallPage() {
       <h1 className="text-center font-titre text-3xl font-bold text-charbon-800">
         Essaie Assiettly Premium gratuitement
       </h1>
-      <p className="mt-2 text-center text-charbon-400">7 jours offerts, sans engagement.</p>
+      <p className="mt-2 text-center text-charbon-400">{TARIFS.essaiJours} jours offerts, sans engagement.</p>
 
       <div className="mt-8 grid grid-cols-2 gap-4">
         <div className="rounded-2xl bg-creme-50 p-5">
           <p className="font-titre font-semibold text-charbon-800">Gratuit</p>
-          <p className="mt-1 text-sm text-charbon-400">3 scans par semaine, journal et flamme illimités.</p>
+          <p className="mt-1 text-sm text-charbon-400">
+            {SCANS_GRATUITS_PAR_JOUR} scans par jour, journal et flamme illimités.
+          </p>
         </div>
         <div className="rounded-2xl border-2 border-corail-500 bg-corail-50 p-5">
           <p className="font-titre font-semibold text-corail-600">Premium</p>
@@ -41,12 +39,14 @@ export default async function PaywallPage() {
       <div className="mt-8 space-y-3">
         <form action={demarrerAbonnement.bind(null, "annuel")}>
           <BoutonAbonnement className="w-full rounded-2xl bg-corail-500 py-4 font-titre font-semibold text-white">
-            Essai gratuit — puis 49,99€/an
+            Essai gratuit — puis {TARIFS.annuel.prixAffiche}
+            {TARIFS.annuel.periode}
           </BoutonAbonnement>
         </form>
         <form action={demarrerAbonnement.bind(null, "mensuel")}>
           <BoutonAbonnement className="w-full rounded-2xl border border-creme-200 bg-creme-50 py-4 font-titre font-semibold text-charbon-800">
-            Essai gratuit — puis 6,99€/mois
+            Essai gratuit — puis {TARIFS.mensuel.prixAffiche}
+            {TARIFS.mensuel.periode}
           </BoutonAbonnement>
         </form>
       </div>

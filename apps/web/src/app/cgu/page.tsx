@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { LegalLayout } from "@/components/legal/LegalLayout";
+import { SCANS_GRATUITS_PAR_JOUR, TARIFS } from "@/lib/pricing";
 
 export const metadata: Metadata = {
   title: "Conditions générales d'utilisation — Assiettly",
@@ -52,10 +53,10 @@ export default function CguPage() {
           </li>
         </ul>
         <p>
-          Certaines fonctionnalités affichées dans l&rsquo;application (badges et défis entre amis, coach
-          IA) sont en cours de déploiement progressif et peuvent être partiellement fonctionnelles, présentées à
-          titre de démonstration, ou évoluer sans préavis ; Assiettly s&rsquo;engage à ne pas présenter comme
-          pleinement opérationnelle une fonctionnalité qui ne l&rsquo;est pas encore.
+          Certaines fonctionnalités affichées dans l&rsquo;application (badges et défis entre amis) sont en
+          cours de déploiement progressif et peuvent être partiellement fonctionnelles, présentées à titre de
+          démonstration, ou évoluer sans préavis ; Assiettly s&rsquo;engage à ne pas présenter comme pleinement
+          opérationnelle une fonctionnalité qui ne l&rsquo;est pas encore.
         </p>
       </section>
 
@@ -75,19 +76,22 @@ export default function CguPage() {
         <p>Assiettly propose deux formules&nbsp;:</p>
         <ul>
           <li>
-            <strong>Offre gratuite</strong>&nbsp;: journal alimentaire et mécanique de flamme en illimité, jusqu&rsquo;à
-            3 scans de repas par photo par semaine.
+            <strong>Offre gratuite</strong>&nbsp;: journal alimentaire et mécanique de flamme en illimité,
+            jusqu&rsquo;à {SCANS_GRATUITS_PAR_JOUR} scans de repas par photo par jour.
           </li>
           <li>
-            <strong>Offre Premium</strong>&nbsp;: 6,99&nbsp;€/mois ou 49,99&nbsp;€/an, incluant les scans de repas
-            par photo illimités, l&rsquo;historique complet et l&rsquo;export des données, ainsi que les
-            fonctionnalités en cours de déploiement mentionnées à l&rsquo;article 2.
+            <strong>Offre Premium</strong>&nbsp;: {TARIFS.mensuel.prixAffiche}
+            {TARIFS.mensuel.periode} ou {TARIFS.annuel.prixAffiche}
+            {TARIFS.annuel.periode}, incluant les scans de repas par photo illimités.
           </li>
         </ul>
         <p>
-          L&rsquo;abonnement Premium est proposé avec un essai gratuit de 7 jours à l&rsquo;inscription. Le
-          paiement est géré par Stripe&nbsp;; à défaut de résiliation avant la fin de la période d&rsquo;essai,
-          l&rsquo;abonnement démarre automatiquement et le montant correspondant à la formule choisie est prélevé.
+          L&rsquo;abonnement Premium est proposé avec un essai gratuit de {TARIFS.essaiJours} jours à
+          l&rsquo;inscription, sans carte bancaire requise tant qu&rsquo;aucun paiement n&rsquo;est dû. Le
+          paiement est géré par Stripe&nbsp;; si l&rsquo;utilisateur a enregistré une carte et ne résilie pas
+          avant la fin de la période d&rsquo;essai, l&rsquo;abonnement démarre automatiquement et le montant
+          correspondant à la formule choisie est prélevé. Si aucune carte n&rsquo;a été enregistrée, l&rsquo;essai
+          se termine simplement par un retour à l&rsquo;offre gratuite, sans prélèvement.
           L&rsquo;utilisateur peut résilier son abonnement à tout moment, sans engagement, directement depuis son
           profil via le portail de gestion d&rsquo;abonnement Stripe&nbsp;; la résiliation prend effet à la fin de
           la période déjà payée, sans remboursement au prorata de la période en cours sauf disposition légale

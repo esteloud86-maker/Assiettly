@@ -11,9 +11,9 @@
  */
 const LIGNES = [
   {
-    critere: "Base alimentaire adaptée à la cuisine française",
+    critere: "Plats français reconnus nativement (pas juste traduits)",
     assiettly: "✅ Oui",
-    generaliste: "Souvent partielle",
+    generaliste: "Variable",
   },
   {
     critere: "Motivation par streak quotidien (flamme)",

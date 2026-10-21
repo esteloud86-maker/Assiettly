@@ -1,13 +1,19 @@
+import { SCANS_GRATUITS_PAR_JOUR, TARIFS } from "@/lib/pricing";
+
 const QUESTIONS = [
   {
     question: "Quelle est la précision du scan de repas par photo ?",
     reponse:
-      "Le scan utilise une IA d'analyse d'image pour estimer les aliments, les quantités, puis les calories et macros. Comme toute estimation automatique, un ajustement manuel reste parfois utile — tu peux toujours corriger le résultat avant de valider ton repas.",
+      "Ça dépend du plat : élevée pour un plat simple et bien identifiable (quiche, poulet-riz), plus incertaine pour un plat très composite en sauce. On affiche toujours le niveau de confiance, et tu corriges en 2 taps si besoin.",
+  },
+  {
+    question: "Ça marche aussi pour les plats français complexes (bourguignon, blanquette...) ?",
+    reponse:
+      "Oui, c'est le point de départ d'Assiettly — reconnaître ces plats-là, pas seulement les burgers et les salades que les autres apps connaissent déjà.",
   },
   {
     question: "Quelle est la différence entre l'offre gratuite et Premium ?",
-    reponse:
-      "La formule gratuite inclut le journal et la flamme en illimité, avec 3 scans de repas par semaine. Premium débloque les scans illimités, l'historique complet avec export, et un coach IA pour ajuster tes objectifs.",
+    reponse: `Le gratuit te donne le journal et la flamme en illimité, avec ${SCANS_GRATUITS_PAR_JOUR} scans de repas par photo par jour. Premium lève cette limite sur les scans.`,
   },
   {
     question: "Comment fonctionne la flamme, et que se passe-t-il si je rate un jour ?",
@@ -15,14 +21,17 @@ const QUESTIONS = [
       "Ta flamme avance chaque jour où tu restes dans une marge de ±10 % autour de ton objectif calorique. Un jour manqué l'éteint — mais tu as 2 freezes (jours de grâce) par mois pour la préserver si besoin, sans te sentir pénalisé·e pour un écart ponctuel.",
   },
   {
+    question: "Puis-je annuler mon abonnement à tout moment ?",
+    reponse: "Oui, en un clic depuis ton profil — pas d'engagement, pas d'appel à passer.",
+  },
+  {
+    question: `Que se passe-t-il après les ${TARIFS.essaiJours} jours d'essai si je ne m'abonne pas ?`,
+    reponse: `Rien de dramatique : l'app repasse en mode gratuit (${SCANS_GRATUITS_PAR_JOUR} scans par jour), tes données et ta flamme restent intactes.`,
+  },
+  {
     question: "Mes données sont-elles en sécurité ?",
     reponse:
       "Oui : elles sont hébergées en Europe et le traitement est conforme au RGPD. Tu restes propriétaire de tes données et peux en demander l'export ou la suppression à tout moment depuis ton profil.",
-  },
-  {
-    question: "Puis-je annuler mon abonnement à tout moment ?",
-    reponse:
-      "Oui, sans engagement. L'annulation se fait en un clic depuis ton profil et prend effet à la fin de la période déjà payée.",
   },
   {
     question: "Assiettly fonctionne-t-il sur iOS et Android ?",

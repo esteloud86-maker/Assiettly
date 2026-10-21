@@ -1168,6 +1168,90 @@ table de suivi Prisma cohérente).
 **Vérification** : `pnpm typecheck` et `pnpm build` propres après chaque
 lot de changements.
 
+## Refonte landing (masterclass) : hero, démo de scan, nouvelle offre
+
+Exécution du brief "Design & copywriting niveau masterclass", après
+validation du plan de design + copy par l'utilisateur, avec ajustements :
+titre hero option 2, ligne Comparatif remplacée, offre gratuite simplifiée
+à une seule règle (3 scans/jour), retrait de "export" et "coach IA" de
+tous les textes tant que ces fonctionnalités n'existent pas.
+
+**`src/lib/pricing.ts` (nouveau)** : source unique des montants affichés
+(mensuel 6,99€, annuel 39,99€, essai 7 jours) et du quota gratuit (3 scans
+gratuits par jour) — importée par Tarifs, FAQ, paywall et CGU pour que ces
+chiffres ne puissent plus diverger entre eux. ⚠️ Ce sont des montants
+d'affichage : il faut que `STRIPE_PRICE_ID_ANNUEL` pointe réellement vers
+un Price Stripe à 39,99€/an (et `STRIPE_PRICE_ID_MENSUEL` à 6,99€/mois),
+sinon le prix affiché et le prix facturé divergent.
+
+**Quota gratuit passé de 3/semaine à 3/jour** (`scan.ts`) : fenêtre
+glissante remplacée par un jour calendaire Europe/Paris
+(`aujourdHuiLocalCommeDate`), cohérent avec le reste de l'app.
+
+**Essai Stripe réellement "sans carte bancaire"** (`billing.ts`) — bug
+trouvé en écrivant la nouvelle copy du hero/tarifs qui réaffirme cette
+promesse : la session Stripe Checkout ne demandait jamais explicitement
+`payment_method_collection: "if_required"`, donc Stripe demandait une
+carte par défaut même pour un essai à 0€ dû aujourd'hui, contredisant le
+texte marketing déjà présent avant cette session. Corrigé, avec
+`trial_settings.end_behavior.missing_payment_method: "cancel"` pour que
+l'abonnement s'annule proprement (et repasse sur le quota gratuit via le
+webhook existant) si l'essai se termine sans carte enregistrée.
+
+**Hero réécrit** : nouveau titre ("Enfin une app qui ne confond pas ta
+quiche avec une pizza."), structure à une seule colonne centrée (pas de
+split titre/mockup), CTA unique "Essayer gratuitement".
+
+**Démo de scan interactive** (`DemoScan.tsx` + `data/demoScanPlats.ts`,
+nouveau) — le geste audacieux de la page : 6 plats français sélectionnables
+au doigt, résultat affiché avec kcal/macros/confiance. Honnêteté
+non négociable : `resultat` reste `null` tant qu'un vrai test n'a pas été
+fait sur la vraie photo (affiche "Résultat à venir", n'invente jamais de
+chiffre), et la mention "Résultats issus de nos tests sur ces photos — pas
+un direct" est toujours visible. Le repli emoji (pas d'icône d'image
+cassée) remplit la zone tant que la vraie photo n'a pas fini de charger
+avec succès (`onLoad`/`onError`, jamais de flash d'image cassée). Le
+placeholder de précision ("à remplacer par un chiffre réel une fois les
+tests effectués") est gardé par `process.env.NODE_ENV !== "production"` —
+vérifié absent du bundle de production après build. **Photos à déposer par
+l'utilisateur** dans `public/landing/demo/` (6 fichiers attendus, README
+dans ce dossier) ; les résultats réels mesurés sont ensuite à recopier
+dans `demoScanPlats.ts`.
+
+**Comparatif** : ligne "Base alimentaire adaptée..." remplacée par "Plats
+français reconnus nativement (pas juste traduits)" — Assiettly Oui /
+Généralistes Variable (fusionnée avec l'ancienne ligne plutôt qu'ajoutée en
+plus, pour éviter un doublon).
+
+**Tarifs réécrits en 3 blocs** (Essai gratuit / Mensuel / Annuel, l'annuel
+badgé "Le plus choisi") : liste d'avantages réduite à ce qui existe
+réellement (scans illimités, badges "(bientôt)" déjà honnêtement marqués
+comme à venir) — "historique complet et export" et "coach IA" retirés.
+Mention explicite du mode limité post-essai (3 scans/jour, journal et
+flamme illimités).
+
+**FAQ, paywall et CGU alignés** sur les mêmes chiffres via `lib/pricing.ts`
+et `SCANS_GRATUITS_PAR_JOUR` ; CGU article 4 réécrit pour refléter
+honnêtement le nouveau comportement "sans carte bancaire" (déjà vrai après
+le fix `billing.ts` ci-dessus).
+
+**Accessibilité** : la démo de scan utilisait d'abord `role="tablist"` /
+`role="tab"` sans implémenter la navigation clavier aux flèches qu'exige
+ce rôle ARIA — repéré en autocritique et corrigé en `role="group"` +
+`aria-pressed` (boutons simples, Tab/Entrée natifs), plus honnête qu'un
+pattern ARIA à moitié implémenté. Focus clavier visible, `prefers-reduced-
+motion` respecté sur les transitions de la démo.
+
+**QA visuelle** : captures Playwright mobile (375px) et desktop (1440px)
+prises après chaque changement significatif — c'est ce qui a permis de
+repérer et corriger le flash d'icône d'image cassée dans la démo avant de
+considérer la section terminée.
+
+**Build-only** : ce conteneur est neuf (dépendances et `.env` absents au
+démarrage) — `.env` recréé localement avec des valeurs factices
+(gitignored, jamais commité) uniquement pour que `pnpm build` tourne ;
+aucune valeur réelle n'a été utilisée ni modifiée.
+
 ## Prochaines étapes suggérées
 
 1. Renseigner une vraie clé `ANTHROPIC_API_KEY` (actuellement un
