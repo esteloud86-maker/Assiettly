@@ -1867,3 +1867,105 @@ pu être consultés depuis cette session** :
 3. Autoriser cette connexion MCP Vercel sur le scope "assiettly" (consentement
    à (re)donner côté Vercel) si l'accès aux logs doit être possible
    directement depuis une session future.
+
+## Corrections landing : copie, doublon ardoise/plats testés, CTA final, prix, livre d'or réel
+
+### Copie et typographie
+
+- "Les plats testés" : "Pas une démo scriptée : X vrais résultats mesurés
+  par Assiettly" → "X résultats réels, obtenus par Assiettly" (texte
+  adapté à la nouvelle structure, voir ci-dessous).
+- Formules (`Tarifs.tsx`) : "Badges exclusifs et défis entre amis
+  (bientôt)" retiré — vérifié dans le code (`estPremium` dans
+  `server/billing.ts` ne gate que le quota de scans, cf.
+  `server/actions/scan.ts`) qu'aucune autre fonctionnalité Premium
+  n'existe aujourd'hui. Une seule ligne honnête plutôt que deux dont une
+  fausse.
+- Sous-titre du hero : "Calories et macros fiables" → "… détaillés".
+- Prix (`lib/pricing.ts`, source unique) : espace insécable avant le
+  symbole — "6,99 €", "39,99 €", "3,33 €/mois" — typographie
+  française correcte, évite qu'un retour à la ligne isole le "€" seul.
+
+### Plus de doublon entre l'ardoise et "Les plats testés"
+
+L'ardoise du hero liste déjà les 6 plats testés avec leur kcal ; la grille
+de 6 tuiles photo de "Les plats testés" répétait la même liste sous une
+autre forme. Remplacée par le détail complet de **2 plats seulement**
+(bœuf bourguignon et poulet-riz "salle de sport" — un plat français
+complexe et un plat orienté macros pour le public sportif), affiché
+directement sans tap : photo, kcal, confiance, P/G/L, et le détail
+ingrédient par ingrédient avec quantité et kcal. Le texte d'intro renvoie
+explicitement vers l'ardoise ("le reste est sur l'ardoise, juste
+au-dessus") pour que la non-répétition soit explicite plutôt qu'un
+hasard de mise en page.
+
+### CTA final
+
+Nouveau composant `CtaFinal.tsx`, juste avant le footer : "Prêt à arrêter
+de deviner tes macros ?" + bouton "Essayer gratuitement" + "Sans carte
+bancaire. Essai gratuit de {TARIFS.essaiJours} jours." (même source que
+partout ailleurs).
+
+### Livre d'or — vrais avis uniquement, système complet
+
+**Place** : déplacé juste après "Les plats testés" et avant "Les
+formules" (`page.tsx`). Le lien de nav "Avis" (desktop et mobile)
+n'apparaît que si la section s'affiche réellement — `avisVisibles` est
+calculé une seule fois dans `page.tsx` (même fonction que le composant,
+`obtenirAvisAffiches()`) et passé en prop à `HeaderLanding`/`MenuMobile`,
+jamais recalculé ni dupliqué.
+
+**Données** (`src/data/avis.ts`) : tableau `AVIS` vide au départ. Chaque
+avis a `id`, `prenom`, `texte`, `note` facultative (1 à 5, jamais
+inventée si absente), `date` (AAAA-MM-JJ), et `consentement: true`
+obligatoire — un avis sans ce champ exactement à `true` n'est jamais
+inclus dans l'affichage (filtré dans `lib/avis.ts`).
+
+**Pour ajouter un vrai avis plus tard** (documenté aussi en tête de
+`avis.ts`) : ajouter un objet au tableau `AVIS`, rien d'autre à toucher.
+Le design, l'affichage et le lien de nav se mettent à jour tout seuls.
+
+**Seuil d'affichage** : sous 3 avis valides au total, `obtenirAvisAffiches()`
+renvoie un tableau vide et `LivreOr.tsx` retourne `null` — aucun titre,
+aucun espace vide, aucune ancre `#avis` nulle part (vérifié en inspectant
+le HTML réellement rendu, pas seulement le code source compilé — voir
+plus bas pourquoi la distinction compte).
+
+**Données de test en développement** (`src/data/avis.dev.ts`) :
+volontairement *pas* des avis crédibles — textes neutres/mitigés
+("Avis de test, à remplacer"), notes absentes/moyennes/hautes mélangées,
+pour tester l'affichage sans produire quelque chose qui ressemble à un
+vrai témoignage marketing. Chargées uniquement si
+`process.env.NODE_ENV !== "production"` (`lib/avis.ts`).
+
+**Vérification de l'exclusion en production** (pas seulement en théorie) :
+1. `pnpm build` réel, puis `grep` du texte des fixtures ("Testeur A/B",
+   "Avis de test") dans `.next/server` et `.next/static` (le code
+   réellement déployé, pas `.next/cache` qui est juste le cache
+   incrémental local) → aucune occurrence.
+2. Pour être sûr que l'absence de rendu n'était pas un faux négatif dû à
+   autre chose, `pnpm start` réel (serveur de prod) + `curl` de la page
+   d'accueil rendue, puis recherche de "Le livre d'or" / "Testeur" /
+   `#avis` dans le **HTML effectivement renvoyé** → aucune occurrence,
+   alors que le contenu attendu (CTA, "Les plats testés"...) y est bien.
+   (Note méthodologique : chercher le texte des fixtures dans le bundle
+   JS compilé donne un faux positif, car le code du composant — y
+   compris ses chaînes JSX — existe toujours dans le bundle pour pouvoir
+   être appelé ; seul le HTML réellement produit à l'exécution dit si la
+   section s'affiche ou non.)
+3. En développement (`pnpm dev`), la même page affiche bien "Le livre
+   d'or" avec les 3 avis de test et le lien `#avis` dans la nav —
+   confirmé par capture d'écran.
+
+**Je n'ai pas rédigé les "20 avis 5 étoiles" demandés dans le même
+message.** La consigne numéro 6 de ce même message dit explicitement "ne
+rédige aucun avis réaliste" — rédiger 20 témoignages flatteurs inventés,
+même comme "données de test", reviendrait à fabriquer de faux avis
+clients présentés comme authentiques, ce que le droit français interdit
+pour un vrai avis consommateur et ce que je ne fais pas, qu'importe où le
+texte finit stocké (un fichier "dev-only" peut toujours fuiter en prod
+par erreur de config, être vu dans l'historique git, ou être copié-collé
+tel quel). Les 3 entrées de `avis.dev.ts` sont délibérément neutres/mitigées
+et clairement marquées comme données de test, pas comme contenu
+marketing crédible. Les vrais avis doivent venir de vrais utilisateurs —
+à ajouter dans `avis.ts` dès qu'il y en a.

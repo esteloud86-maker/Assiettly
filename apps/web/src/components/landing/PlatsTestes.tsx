@@ -18,95 +18,85 @@ const COULEUR_CONFIANCE: Record<"elevee" | "moyenne" | "faible", string> = {
   faible: "text-corail-700",
 };
 
+// Deux plats seulement, montrés en détail complet — l'ardoise du hero liste
+// déjà les 6 plats testés avec leur kcal ; répéter la même liste ici serait
+// redondant. Un plat typique de la cuisine française complexe (bourguignon)
+// et un plat "macros" pour le public sportif qui suit ses protéines.
+const IDS_DETAIL = ["boeuf-bourguignon", "poulet-riz"] as const;
+
 /**
- * Remplace l'ancien tableau comparatif générique : preuve vérifiable (6
- * vraies photos, 6 vrais résultats mesurés) plutôt qu'une promesse "Oui" vs
- * "Variable". Pas de nom de concurrent, pas de claim d'hébergement — cf.
- * audit landing (le pipeline de photos passe par un prestataire IA hors UE,
- * une affirmation "hébergement UE" non qualifiée serait trompeuse ici).
+ * Remplace l'ancien tableau comparatif générique : preuve vérifiable (vraies
+ * photos, vrais résultats mesurés, jusqu'à l'ingrédient) plutôt qu'une
+ * promesse "Oui" vs "Variable". Pas de nom de concurrent, pas de claim
+ * d'hébergement — cf. audit landing (le pipeline de photos passe par un
+ * prestataire IA hors UE, une affirmation "hébergement UE" non qualifiée
+ * serait trompeuse ici).
  */
 export function PlatsTestes() {
-  const [selectionId, setSelectionId] = useState<string | null>(null);
-  // cf. Ardoise.tsx : contrôle le fondu d'entrée, jamais d'emoji en attendant
-  // — le fond ivoire (bg-creme-100) réserve déjà la place correcte.
   const [chargees, setChargees] = useState<Set<string>>(new Set());
-  const plats = PLATS_DEMO.filter((p) => p.resultat);
-  const selection = plats.find((p) => p.id === selectionId) ?? null;
+  const plats = PLATS_DEMO.filter((p) => IDS_DETAIL.includes(p.id as (typeof IDS_DETAIL)[number]) && p.resultat);
 
   return (
     <section id="plats-testes" className="mx-auto max-w-4xl px-4 py-16 sm:px-6">
       <p className="font-chalk text-sm font-semibold text-sarcelle-600">Preuve, pas promesse</p>
       <h2 className="mt-1 font-titre text-3xl font-bold text-charbon-800">Les plats testés</h2>
       <p className="mt-2 max-w-md text-charbon-600">
-        Pas une démo scriptée : {plats.length} photos prises nous-mêmes, {plats.length} vrais résultats mesurés par
-        Assiettly. Touche un plat pour voir le détail.
+        6 photos prises nous-mêmes, 6 résultats réels, obtenus par Assiettly. Voici le détail complet de deux d&apos;entre
+        eux — le reste est sur l&apos;ardoise, juste au-dessus.
       </p>
 
-      <div className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-3">
+      <div className="mt-8 grid gap-5 sm:grid-cols-2">
         {plats.map((plat) => {
-          const actif = plat.id === selectionId;
+          const resultat = plat.resultat!;
           return (
-            <button
-              key={plat.id}
-              type="button"
-              onClick={() => setSelectionId(actif ? null : plat.id)}
-              aria-pressed={actif}
-              className={`overflow-hidden rounded-2xl bg-creme-50 text-left shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-corail-500 ${
-                actif ? "ring-2 ring-corail-500" : ""
-              }`}
-            >
+            <div key={plat.id} className="overflow-hidden rounded-3xl bg-creme-50 shadow-sm">
               <div className="relative aspect-[4/3] w-full overflow-hidden bg-creme-100">
                 <Image
                   src={plat.image}
                   alt={plat.nom}
                   fill
-                  sizes="(min-width: 640px) 33vw, 50vw"
+                  sizes="(min-width: 640px) 50vw, 100vw"
                   className={`object-cover transition-opacity duration-300 motion-reduce:transition-none ${
                     chargees.has(plat.id) ? "opacity-100" : "opacity-0"
                   }`}
                   onLoad={() => setChargees((s) => new Set(s).add(plat.id))}
                 />
               </div>
-              <div className="min-w-0 p-3">
-                <p className="font-titre text-sm font-semibold leading-snug text-charbon-800">{plat.nom}</p>
-                <p className="mt-0.5 text-sm text-charbon-600">{plat.resultat!.caloriesKcal} kcal</p>
+
+              <div className="p-5">
+                <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+                  <p className="font-titre text-lg font-semibold text-charbon-800">{plat.nom}</p>
+                  <p className="font-titre text-xl font-bold text-charbon-800">{resultat.caloriesKcal} kcal</p>
+                </div>
+                <div className="mt-1 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+                  <p className={`text-sm font-medium ${COULEUR_CONFIANCE[resultat.confiance]}`}>
+                    {LIBELLE_CONFIANCE[resultat.confiance]}
+                  </p>
+                  <p className="text-sm text-charbon-600">
+                    P {Math.round(resultat.proteinesG)}g · G {Math.round(resultat.glucidesG)}g · L{" "}
+                    {Math.round(resultat.lipidesG)}g
+                  </p>
+                </div>
+
+                <ul className="mt-4 space-y-1.5 border-t border-charbon-400/15 pt-4">
+                  {resultat.ingredients.map((ing) => (
+                    <li key={ing.nom} className="flex items-baseline justify-between gap-3 text-sm">
+                      <span className="min-w-0 text-charbon-600">
+                        {ing.nom} <span className="text-charbon-400">· {ing.quantiteEstimee}</span>
+                      </span>
+                      <span className="shrink-0 tabular-nums text-charbon-400">{Math.round(ing.calories)} kcal</span>
+                    </li>
+                  ))}
+                </ul>
               </div>
-            </button>
+            </div>
           );
         })}
       </div>
 
-      {selection?.resultat ? (
-        <div className="mt-5 rounded-2xl bg-creme-50 p-5 shadow-sm">
-          <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-            <div>
-              <p className="font-titre font-semibold text-charbon-800">{selection.nom}</p>
-              <p className={`mt-0.5 text-sm font-medium ${COULEUR_CONFIANCE[selection.resultat.confiance]}`}>
-                {LIBELLE_CONFIANCE[selection.resultat.confiance]}
-              </p>
-            </div>
-            <p className="text-sm text-charbon-600">
-              P {Math.round(selection.resultat.proteinesG)}g · G {Math.round(selection.resultat.glucidesG)}g · L{" "}
-              {Math.round(selection.resultat.lipidesG)}g
-            </p>
-          </div>
-
-          <ul className="mt-4 space-y-1.5 border-t border-charbon-400/15 pt-4">
-            {selection.resultat.ingredients.map((ing) => (
-              <li key={ing.nom} className="flex items-baseline justify-between gap-3 text-sm">
-                <span className="text-charbon-600">
-                  {ing.nom} <span className="text-charbon-400">· {ing.quantiteEstimee}</span>
-                </span>
-                <span className="shrink-0 tabular-nums text-charbon-400">{Math.round(ing.calories)} kcal</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      ) : null}
-
       <p className="mt-4 text-xs text-charbon-400">
         Résultats issus de nos tests sur ces photos — pas un direct. Un doute sur un ingrédient ? Corrige en 2 taps
-        dans l'app.
+        dans l&apos;app.
       </p>
     </section>
   );

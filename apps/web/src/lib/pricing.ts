@@ -10,13 +10,15 @@
  * correspondant dans le dashboard Stripe, sinon le prix affiché et le prix
  * facturé divergent (publicité trompeuse).
  */
+// " €" (espace insécable avant le symbole) : typographie française des
+// prix — évite qu'un retour à la ligne isole le "€" seul en fin de ligne.
 export const TARIFS = {
   essaiJours: 7,
-  mensuel: { prixAffiche: "6,99€", periode: "/mois" },
+  mensuel: { prixAffiche: "6,99 €", periode: "/mois" },
   annuel: {
-    prixAffiche: "39,99€",
+    prixAffiche: "39,99 €",
     periode: "/an",
-    equivalentMensuel: "3,33€/mois",
+    equivalentMensuel: "3,33 €/mois",
     reductionPct: 52,
   },
 } as const;

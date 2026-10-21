@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { MenuMobile } from "./MenuMobile";
 
-export function HeaderLanding() {
+export function HeaderLanding({ avisVisibles }: { avisVisibles: boolean }) {
   return (
     <header className="relative border-b border-creme-200 bg-creme-100">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4 sm:px-6">
@@ -13,6 +13,11 @@ export function HeaderLanding() {
           <a href="#plats-testes" className="text-sm font-medium text-charbon-600 hover:text-charbon-800">
             Les plats testés
           </a>
+          {avisVisibles ? (
+            <a href="#avis" className="text-sm font-medium text-charbon-600 hover:text-charbon-800">
+              Avis
+            </a>
+          ) : null}
           <a href="#tarifs" className="text-sm font-medium text-charbon-600 hover:text-charbon-800">
             Tarifs
           </a>
@@ -33,7 +38,7 @@ export function HeaderLanding() {
           </Link>
         </div>
 
-        <MenuMobile />
+        <MenuMobile avisVisibles={avisVisibles} />
       </div>
     </header>
   );

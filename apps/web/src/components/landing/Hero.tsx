@@ -8,7 +8,7 @@ export function Hero() {
         Enfin une app qui ne confond pas ta quiche avec une pizza.
       </h1>
       <p className="mt-3 max-w-md text-lg text-charbon-600">
-        Prends ton repas en photo. Calories et macros fiables, même pour un plat 100&nbsp;% français — en quelques
+        Prends ton repas en photo. Calories et macros détaillés, même pour un plat 100&nbsp;% français — en quelques
         secondes.
       </p>
 

@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { CommentCaFonctionne } from "@/components/landing/CommentCaFonctionne";
+import { CtaFinal } from "@/components/landing/CtaFinal";
 import { Faq } from "@/components/landing/Faq";
 import { FooterLanding } from "@/components/landing/FooterLanding";
 import { HeaderLanding } from "@/components/landing/HeaderLanding";
@@ -7,6 +8,7 @@ import { Hero } from "@/components/landing/Hero";
 import { LivreOr } from "@/components/landing/LivreOr";
 import { PlatsTestes } from "@/components/landing/PlatsTestes";
 import { Tarifs } from "@/components/landing/Tarifs";
+import { obtenirAvisAffiches } from "@/lib/avis";
 import { createClient } from "@/lib/supabase/server";
 
 export default async function LandingPage() {
@@ -26,15 +28,21 @@ export default async function LandingPage() {
 
   if (user) redirect("/accueil");
 
+  // Même garde que LivreOr.tsx (moins de 3 avis valides = section masquée)
+  // — calculée ici pour que la nav n'affiche jamais un lien vers une
+  // section qui ne se rend pas.
+  const avisVisibles = obtenirAvisAffiches().length > 0;
+
   return (
     <div className="bg-creme-100">
-      <HeaderLanding />
+      <HeaderLanding avisVisibles={avisVisibles} />
       <Hero />
       <CommentCaFonctionne />
       <PlatsTestes />
-      <Tarifs />
       <LivreOr />
+      <Tarifs />
       <Faq />
+      <CtaFinal />
       <FooterLanding />
     </div>
   );

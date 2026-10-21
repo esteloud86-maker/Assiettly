@@ -1,7 +1,10 @@
 import Link from "next/link";
 import { TARIFS } from "@/lib/pricing";
 
-const AVANTAGES_PREMIUM = ["Scans de repas par photo illimités", "Badges exclusifs et défis entre amis (bientôt)"];
+// Une seule ligne : c'est la seule chose que Premium débloque réellement
+// aujourd'hui (cf. server/actions/scan.ts, estPremium ne gate que le quota
+// de scans) — ne rien ajouter ici qui ne soit pas vérifié dans le code.
+const AVANTAGES_PREMIUM = ["Scans de repas par photo illimités"];
 
 /**
  * Présentées comme des "formules" de carte (menu/semaine) plutôt que deux

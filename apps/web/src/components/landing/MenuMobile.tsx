@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 
-export function MenuMobile() {
+export function MenuMobile({ avisVisibles }: { avisVisibles: boolean }) {
   const [ouvert, setOuvert] = useState(false);
 
   return (
@@ -21,6 +21,11 @@ export function MenuMobile() {
           <a href="#plats-testes" onClick={() => setOuvert(false)} className="block font-medium text-charbon-800">
             Les plats testés
           </a>
+          {avisVisibles ? (
+            <a href="#avis" onClick={() => setOuvert(false)} className="block font-medium text-charbon-800">
+              Avis
+            </a>
+          ) : null}
           <a href="#tarifs" onClick={() => setOuvert(false)} className="block font-medium text-charbon-800">
             Tarifs
           </a>
