@@ -15,7 +15,7 @@ Noms de fichiers attendus (un par plat) :
 - `croissant.webp` ✅
 - `croque-monsieur.webp` ✅
 - `poulet-riz.webp` ✅
-- `ratatouille.webp` — **manquante**, à fournir
+- `ratatouille.webp` ✅
 
 Une fois une photo déposée (ou remplacée), lance
 `npx tsx scripts/generer-demo-scan.ts` (depuis `apps/web`, avec un vrai
