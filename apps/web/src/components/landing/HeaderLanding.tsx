@@ -10,8 +10,8 @@ export function HeaderLanding() {
         </Link>
 
         <nav className="hidden gap-6 sm:flex">
-          <a href="#fonctionnalites" className="text-sm font-medium text-charbon-600 hover:text-charbon-800">
-            Fonctionnalités
+          <a href="#plats-testes" className="text-sm font-medium text-charbon-600 hover:text-charbon-800">
+            Les plats testés
           </a>
           <a href="#tarifs" className="text-sm font-medium text-charbon-600 hover:text-charbon-800">
             Tarifs

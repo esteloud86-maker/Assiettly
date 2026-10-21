@@ -103,6 +103,9 @@ async function main() {
         confiance: CONFIANCE_VERS_DEMO[analyse.confianceGlobale] ?? analyse.confianceGlobale,
       });
       console.log(`  ✓ ${Math.round(totaux.calories)} kcal, confiance ${analyse.confianceGlobale}`);
+      if (process.env.DEMO_SCAN_JSON) {
+        console.log(`  JSON:${plat.id}:${JSON.stringify(analyse)}`);
+      }
     } catch (erreur) {
       const message = erreur instanceof Error ? erreur.message : String(erreur);
       console.error(`  ✗ Échec : ${message}`);

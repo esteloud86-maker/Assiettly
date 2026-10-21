@@ -18,8 +18,8 @@ export function MenuMobile() {
       </button>
       {ouvert ? (
         <div className="absolute inset-x-0 top-full z-40 space-y-3 border-t border-creme-200 bg-creme-50 p-4 shadow-sm">
-          <a href="#fonctionnalites" onClick={() => setOuvert(false)} className="block font-medium text-charbon-800">
-            Fonctionnalités
+          <a href="#plats-testes" onClick={() => setOuvert(false)} className="block font-medium text-charbon-800">
+            Les plats testés
           </a>
           <a href="#tarifs" onClick={() => setOuvert(false)} className="block font-medium text-charbon-800">
             Tarifs

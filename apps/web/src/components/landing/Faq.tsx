@@ -40,19 +40,26 @@ const QUESTIONS = [
   },
 ];
 
+/**
+ * "Notes de bas de carte" : liste sobre à filets fins, pas des cartes
+ * arrondies empilées avec ombre (banni du brief design).
+ */
 export function Faq() {
   return (
-    <section id="faq" className="mx-auto max-w-3xl px-4 py-16 sm:px-6">
-      <h2 className="text-center font-titre text-3xl font-bold text-charbon-800">Questions fréquentes</h2>
+    <section id="faq" className="mx-auto max-w-2xl px-4 py-16 sm:px-6">
+      <p className="font-chalk text-sm font-semibold text-sarcelle-600">Notes de bas de carte</p>
+      <h2 className="mt-1 font-titre text-3xl font-bold text-charbon-800">Questions fréquentes</h2>
 
-      <div className="mt-8 space-y-3">
+      <div className="mt-8 divide-y divide-charbon-400/15 border-t border-charbon-400/15">
         {QUESTIONS.map((item) => (
-          <details key={item.question} className="group rounded-2xl bg-creme-50 p-5 shadow-sm">
-            <summary className="flex cursor-pointer list-none items-center justify-between font-titre font-semibold text-charbon-800">
+          <details key={item.question} className="group py-4">
+            <summary className="flex min-h-[44px] cursor-pointer list-none items-center justify-between gap-4 font-titre font-semibold text-charbon-800">
               {item.question}
-              <span className="ml-4 shrink-0 text-corail-500 transition-transform group-open:rotate-45">+</span>
+              <span className="shrink-0 text-corail-700 transition-transform group-open:rotate-45" aria-hidden="true">
+                +
+              </span>
             </summary>
-            <p className="mt-3 text-sm text-charbon-600">{item.reponse}</p>
+            <p className="mt-2 text-sm text-charbon-600">{item.reponse}</p>
           </details>
         ))}
       </div>

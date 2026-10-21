@@ -1616,3 +1616,139 @@ scripts/generer-demo-scan.ts` avec un vrai `ANTHROPIC_API_KEY` dans
 9. Rédiger les vraies pages légales (CGU, confidentialité, mentions
    légales — actuellement des placeholders) et les endpoints
    export/suppression de données RGPD
+
+## Refonte design "La carte" — la landing devient une carte de brasserie
+
+Refonte complète de la composition de la landing (pas un "léger polish") :
+le produit sait lire les plats français, donc la page se présente comme
+une vraie carte de brasserie plutôt qu'un kit SaaS générique.
+
+### Le geste audacieux : l'ardoise (`Ardoise.tsx`, dans `Hero.tsx`)
+
+Remplace l'ancien `DemoScan.tsx`. Une ardoise (fond charbon, texte ivoire)
+liste les 6 plats testés avec des pointillés jusqu'au kcal, comme des prix
+de menu. Toucher un plat ouvre le détail (vraie photo, ingrédients,
+quantités, P/G/L, confiance) sans quitter l'ardoise — pas de survol requis,
+testé utilisable au doigt dès 320px. Les lignes "s'écrivent" une seule fois
+à l'arrivée (`globals.css`, `@keyframes ardoise-ecriture`, clip-path),
+entièrement désactivé sous `prefers-reduced-motion`.
+
+Troisième police (accent uniquement, jamais pour des chiffres réels) :
+**Shantell Sans**, choisie pour éviter les clichés "craie"/manuscrit fatigué
+(Caveat, Kalam, Permanent Marker...) — chargée via `next/font/google`, un
+seul poids, `display: swap`, variable `--font-chalk` (`tailwind.config.ts`).
+
+### Données de démo étendues avec le détail par ingrédient
+
+`src/data/demoScanPlats.ts` a été réécrit : `ResultatDemoScan` a maintenant
+un champ `ingredients[]` (nom, quantité estimée, calories, P/G/L, confiance
+par ingrédient), nécessaire pour le détail de l'ardoise et de "Les plats
+testés". Les 6 plats ont été testés avec de vraies photos (fournies par
+l'utilisateur, optimisées en WebP ≤150 Ko, EXIF supprimé) envoyées au vrai
+module d'analyse (`scripts/generer-demo-scan.ts`, mode `DEMO_SCAN_JSON=1`
+qui imprime la réponse complète y compris les ingrédients). Aucune valeur
+arrondie ou corrigée à la main — copiées telles quelles depuis la sortie du
+modèle, arrondi uniquement au rendu (même convention que l'écran de scan
+réel). Le modèle n'étant pas déterministe (pas de température fixée), deux
+runs sur la même photo donnent des totaux légèrement différents — normal et
+documenté en tête du fichier de données.
+
+⚠️ **Clé API** : l'utilisateur a collé sa vraie clé Anthropic directement
+dans le chat pour permettre ce test. Elle a été écrite uniquement dans
+`apps/web/.env` (non versionné, vérifié avec `git check-ignore` avant
+écriture), jamais dans un fichier commité. Recommandation donnée à
+l'utilisateur de révoquer et régénérer cette clé par précaution, la
+conversation elle-même pouvant en garder une trace côté historique de
+session.
+
+### Reste de la page
+
+- **Comment ça fonctionne** (`CommentCaFonctionne.tsx`) : restylée en
+  séquence verticale "temps de menu" (liste à filets, numéros 01-04) au
+  lieu d'une grille 2×2 d'icônes en cercle.
+- **Les plats testés** (`PlatsTestes.tsx`, nouveau) : remplace à la fois
+  `Fonctionnalites.tsx` et `Comparatif.tsx` (tous deux supprimés). Mur des
+  6 vraies photos avec leurs vrais résultats, tap pour le détail par
+  ingrédient — preuve vérifiable plutôt que promesse. L'ancien tableau
+  comparatif affirmait "Hébergement des données en Europe : ✅ Oui" pour
+  Assiettly ; retiré avec la section, car le pipeline d'analyse photo passe
+  par l'API standard d'Anthropic (pas de garantie de résidence UE), même si
+  la base Supabase est bien en `eu-west-3` — une affirmation "hébergement
+  UE" non qualifiée aurait été trompeuse ici.
+- **Les formules** (`Tarifs.tsx`) : restylées en liste à filets (mensuelle
+  / annuelle) avec bordure d'accent plutôt que deux cartes identiques à
+  ombre — contenu inchangé (prix, essai 7 jours).
+- **Le livre d'or** (`LivreOr.tsx`, nouveau) : emplacement prêt pour de
+  vrais avis, masqué en production (`NODE_ENV === "production"` → `null`)
+  tant qu'il n'y en a aucun — même garde-fou que le placeholder de
+  précision déjà existant.
+- **FAQ** (`Faq.tsx`) : restylée en "notes de bas de carte" (liste à
+  filets fins) au lieu de cartes empilées à ombre. Contenu inchangé.
+- Navigation (`HeaderLanding.tsx`, `MenuMobile.tsx`) : le lien
+  "Fonctionnalités" → `#fonctionnalites` devient "Les plats testés" →
+  `#plats-testes`.
+
+### Contraste WCAG AA — bugs trouvés et corrigés
+
+Audit systématique des couleurs texte après captures (calcul de ratio de
+contraste programmatique, pas à l'œil) :
+- `ambre-500` sur fond clair (creme-50) : 2.25:1, **échoue** AA texte
+  normal (4.5:1 requis). Nouveau token `ambre-700` (`#A85A0C`, ~4.9:1)
+  ajouté à `tailwind.config.ts`, utilisé pour "Confiance moyenne" dans
+  "Les plats testés".
+- `corail-500`/`corail-600` sur fond clair pour les eyebrows (`font-chalk`)
+  et les numéros d'étape : 2.96:1 / 4.09:1, échouent aussi. Remplacés par
+  `corail-700` (déjà dans la palette, 5.47-5.83:1) partout où ces couleurs
+  servaient de texte sur fond ivoire.
+- `sarcelle-500` sur fond sombre (charbon-800, badge "Confiance élevée" de
+  l'ardoise) : 2.98:1, échoue. Remplacé par `sarcelle-400` (4.75:1), déjà
+  dans la palette.
+- Vérifiés et déjà conformes sans changement : `ambre-300`/`ambre-500`/
+  `corail-400` sur charbon-800 (6-10:1), `sarcelle-600`/`charbon-400` sur
+  creme-50 (5.9-7.2:1).
+
+### Vérifications effectuées
+
+- `pnpm typecheck` : ✅ après chaque étape majeure.
+- Captures Playwright à 320px, 375px et desktop (mobile puis desktop,
+  avant et après les corrections de contraste) : aucun défilement
+  horizontal à aucune largeur (`scrollWidth > clientWidth` vérifié en
+  JS), ardoise et mur de plats utilisables au tap, animation d'écriture
+  fonctionnelle.
+- Cibles tactiles : boutons de l'ardoise et résumé FAQ `min-h-[44px]`
+  explicite ; tuiles photo et CTA naturellement au-dessus du seuil.
+- `prefers-reduced-motion` : animations de l'ardoise désactivées
+  entièrement (pas de fondu résiduel) via la media query dans
+  `globals.css`.
+
+### Autocritique — qu'est-ce que j'ai enlevé ou n'ai pas fait
+
+- Pas d'icônes en cercle, pas d'eyebrows en majuscules espacées, pas de
+  "→" sur les liens, pas de dégradés décoratifs, pas de numérotation
+  01-04 hors séquence réelle (celle-ci l'est vraiment) — volontairement
+  évités pour respecter la liste d'écueils du brief.
+- Desktop reste volontairement étroit (max-w-2xl à max-w-4xl selon les
+  sections) : le brief demande mobile-first et de ne pas répéter la même
+  grille partout ; une colonne resserrée façon menu imprimé tient mieux
+  cette promesse qu'un remplissage large de l'écran. À revoir si ça paraît
+  trop vide sur un grand écran une fois testé par de vrais visiteurs
+  desktop.
+- `ratatouille.webp` est la seule photo qui n'était pas déjà en place en
+  début de session — maintenant traitée et intégrée, donc les 6 plats ont
+  un vrai résultat.
+
+### Prérequis encore manquants côté utilisateur
+
+1. **Revoir/régénérer la clé Anthropic** collée dans le chat (voir
+   ci-dessus), par précaution.
+2. **FAQ "Mes données sont-elles en sécurité ?"** affirme encore "hébergées
+   en Europe" sans la nuance photo/Anthropic relevée plus haut pour "Les
+   plats testés" — cette ligne n'a pas été retouchée dans cette passe
+   (contenu FAQ hors scope, restylage visuel uniquement) mais mérite la
+   même relecture.
+3. **De vrais avis** pour remplir le livre d'or (actuellement masqué).
+4. Si les résultats de démo doivent être régénérés plus tard (nouvelles
+   photos, nouveau modèle...), relancer
+   `DEMO_SCAN_JSON=1 npx tsx scripts/generer-demo-scan.ts` avec une vraie
+   clé dans `apps/web/.env` et recopier les résultats dans
+   `demoScanPlats.ts` — jamais à la main, jamais arrondis/corrigés.

@@ -1,10 +1,14 @@
 import type { Metadata, Viewport } from "next";
-import { Fredoka, Inter } from "next/font/google";
+import { Fredoka, Inter, Shantell_Sans } from "next/font/google";
 import { PwaInit } from "@/components/PwaInit";
 import "./globals.css";
 
 const fredoka = Fredoka({ subsets: ["latin"], variable: "--font-fredoka", weight: ["500", "600", "700"] });
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
+// Troisième caractère, réservé à l'accent "ardoise" du hero (cf. brief
+// design) — jamais pour des chiffres réels (kcal/macros), qui restent en
+// Fredoka pour la lisibilité. Un seul poids, chargé en sous-ensemble.
+const shantellSans = Shantell_Sans({ subsets: ["latin"], variable: "--font-chalk", weight: ["600"], display: "swap" });
 
 export const metadata: Metadata = {
   title: "Assiettly — Suivi nutritionnel simple et motivant",
@@ -44,7 +48,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="fr" className={`${fredoka.variable} ${inter.variable} scroll-smooth`}>
+    <html lang="fr" className={`${fredoka.variable} ${inter.variable} ${shantellSans.variable} scroll-smooth`}>
       <body>
         <PwaInit />
         {children}

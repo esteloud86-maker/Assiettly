@@ -1,11 +1,11 @@
 import { redirect } from "next/navigation";
-import { Comparatif } from "@/components/landing/Comparatif";
 import { CommentCaFonctionne } from "@/components/landing/CommentCaFonctionne";
 import { Faq } from "@/components/landing/Faq";
-import { Fonctionnalites } from "@/components/landing/Fonctionnalites";
 import { FooterLanding } from "@/components/landing/FooterLanding";
 import { HeaderLanding } from "@/components/landing/HeaderLanding";
 import { Hero } from "@/components/landing/Hero";
+import { LivreOr } from "@/components/landing/LivreOr";
+import { PlatsTestes } from "@/components/landing/PlatsTestes";
 import { Tarifs } from "@/components/landing/Tarifs";
 import { createClient } from "@/lib/supabase/server";
 
@@ -22,9 +22,9 @@ export default async function LandingPage() {
       <HeaderLanding />
       <Hero />
       <CommentCaFonctionne />
-      <Fonctionnalites />
-      <Comparatif />
+      <PlatsTestes />
       <Tarifs />
+      <LivreOr />
       <Faq />
       <FooterLanding />
     </div>

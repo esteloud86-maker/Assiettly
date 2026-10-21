@@ -33,6 +33,10 @@ const config: Config = {
           300: "#FFCB7A",
           400: "#FFB648",
           500: "#F2953C",
+          // Variante sombre pour texte sur fond clair — ambre-500 seul
+          // (2.25:1 sur creme-50) échoue WCAG AA pour du texte normal ;
+          // celle-ci donne ~4.9:1.
+          700: "#A85A0C",
         },
         charbon: {
           400: "#6B615B",
@@ -43,6 +47,9 @@ const config: Config = {
       fontFamily: {
         titre: ["var(--font-fredoka)", "sans-serif"],
         corps: ["var(--font-inter)", "sans-serif"],
+        // Accent "ardoise" uniquement (cf. Hero/Ardoise) — jamais pour des
+        // valeurs chiffrées réelles.
+        chalk: ["var(--font-chalk)", "cursive"],
       },
       borderRadius: {
         xl2: "1.25rem",

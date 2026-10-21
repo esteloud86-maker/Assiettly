@@ -48,3 +48,44 @@ textarea {
 .molette-scroll::-webkit-scrollbar {
   display: none;
 }
+
+/* Ardoise du hero : les lignes "s'écrivent" à l'arrivée, une seule fois
+   (cf. brief design). Révélation de gauche à droite via clip-path plutôt
+   qu'un simple fondu, pour évoquer l'écriture sans bibliothèque
+   d'animation. Désactivée entièrement si prefers-reduced-motion : rendu
+   statique immédiat, comme demandé. */
+@keyframes ardoise-ecriture {
+  from {
+    clip-path: inset(0 100% 0 0);
+    opacity: 0.5;
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+    opacity: 1;
+  }
+}
+.ardoise-ligne {
+  animation: ardoise-ecriture 700ms ease-out both;
+}
+@keyframes ardoise-detail-entree {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.ardoise-detail {
+  animation: ardoise-detail-entree 200ms ease-out both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .ardoise-ligne,
+  .ardoise-detail {
+    animation: none;
+    clip-path: none;
+    opacity: 1;
+    transform: none;
+  }
+}
