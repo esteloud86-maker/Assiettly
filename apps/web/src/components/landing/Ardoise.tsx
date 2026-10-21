@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useState } from "react";
 import { PLATS_DEMO } from "@/data/demoScanPlats";
 
@@ -31,6 +32,12 @@ const COULEUR_CONFIANCE: Record<"elevee" | "moyenne" | "faible", string> = {
  */
 export function Ardoise() {
   const [ouvertId, setOuvertId] = useState<string | null>(null);
+  // Photos chargées avec succès : contrôle le fondu d'entrée. Tant qu'une
+  // photo n'a pas fini de décoder, son emplacement reste un simple fond
+  // ivoire (aucun emoji, aucune icône — la zone est réservée dès le premier
+  // rendu via le wrapper h-16 w-16 ci-dessous, donc aucun saut de mise en
+  // page non plus).
+  const [chargees, setChargees] = useState<Set<string>>(new Set());
 
   return (
     <div className="relative rounded-3xl bg-charbon-800 px-5 py-6 text-creme-100 shadow-lg shadow-charbon-800/20 sm:px-8 sm:py-8">
@@ -51,7 +58,9 @@ export function Ardoise() {
                 className="ardoise-ligne flex min-h-[44px] w-full items-baseline gap-2 py-3 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ambre-300"
                 style={{ animationDelay: `${i * 110}ms` }}
               >
-                <span className="font-titre text-[15px] font-medium leading-snug sm:text-base">{plat.nom}</span>
+                <span className="min-w-0 font-titre text-[15px] font-medium leading-snug sm:text-base">
+                  {plat.nom}
+                </span>
                 <span aria-hidden="true" className="mb-[5px] flex-1 border-b border-dotted border-creme-100/30" />
                 <span className="shrink-0 font-titre text-[15px] font-semibold tabular-nums sm:text-base">
                   {resultat ? `${resultat.caloriesKcal} kcal` : "bientôt"}
@@ -61,14 +70,19 @@ export function Ardoise() {
               {ouvert && resultat ? (
                 <div id={`ardoise-detail-${plat.id}`} className="ardoise-detail mb-3 rounded-2xl bg-creme-100/[0.06] p-4">
                   <div className="flex items-start gap-3">
-                    {/* eslint-disable-next-line @next/next/no-img-element -- photo déposée à la main dans /public */}
-                    <img
-                      src={plat.image}
-                      alt={plat.nom}
-                      className="h-16 w-16 shrink-0 rounded-xl object-cover"
-                      loading="lazy"
-                    />
-                    <div>
+                    <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-creme-100">
+                      <Image
+                        src={plat.image}
+                        alt={plat.nom}
+                        fill
+                        sizes="64px"
+                        className={`object-cover transition-opacity duration-300 motion-reduce:transition-none ${
+                          chargees.has(plat.id) ? "opacity-100" : "opacity-0"
+                        }`}
+                        onLoad={() => setChargees((s) => new Set(s).add(plat.id))}
+                      />
+                    </div>
+                    <div className="min-w-0">
                       <p className={`text-xs font-medium ${COULEUR_CONFIANCE[resultat.confiance]}`}>
                         {LIBELLE_CONFIANCE[resultat.confiance]}
                       </p>

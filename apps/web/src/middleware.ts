@@ -19,30 +19,42 @@ const ROUTES_PUBLIQUES = [
 export async function middleware(request: NextRequest) {
   let response = NextResponse.next({ request });
 
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return request.cookies.getAll();
-        },
-        setAll(cookiesToSet: CookieToSet[]) {
-          for (const { name, value } of cookiesToSet) {
-            request.cookies.set(name, value);
-          }
-          response = NextResponse.next({ request });
-          for (const { name, value, options } of cookiesToSet) {
-            response.cookies.set(name, value, options);
-          }
+  // Le middleware tourne sur quasi toutes les requêtes du site (cf. matcher
+  // ci-dessous) : si les variables d'env Supabase manquent/sont invalides en
+  // production, ou si Supabase est injoignable, `createServerClient`/
+  // `getUser()` lèvent une exception — sans ce try/catch, ça fait planter
+  // TOUT le site avec l'écran générique "Application error" (déjà observé
+  // en production). On traite ce cas comme "non connecté" : les routes
+  // protégées redirigent normalement vers /connexion (comportement déjà
+  // existant plus bas), les routes publiques restent servies.
+  let user: { id: string } | null = null;
+  try {
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() {
+            return request.cookies.getAll();
+          },
+          setAll(cookiesToSet: CookieToSet[]) {
+            for (const { name, value } of cookiesToSet) {
+              request.cookies.set(name, value);
+            }
+            response = NextResponse.next({ request });
+            for (const { name, value, options } of cookiesToSet) {
+              response.cookies.set(name, value, options);
+            }
+          },
         },
       },
-    },
-  );
+    );
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+    const { data } = await supabase.auth.getUser();
+    user = data.user;
+  } catch (erreur) {
+    console.error("[middleware] Supabase injoignable ou mal configuré :", erreur);
+  }
 
   const estRoutePublique = ROUTES_PUBLIQUES.some(
     (route) => request.nextUrl.pathname === route || request.nextUrl.pathname.startsWith(`${route}/`),

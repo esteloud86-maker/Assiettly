@@ -1752,3 +1752,118 @@ contraste programmatique, pas à l'œil) :
    `DEMO_SCAN_JSON=1 npx tsx scripts/generer-demo-scan.ts` avec une vraie
    clé dans `apps/web/.env` et recopier les résultats dans
    `demoScanPlats.ts` — jamais à la main, jamais arrondis/corrigés.
+
+## Trois correctifs — emoji avant les images, débordement horizontal, erreur serveur en production
+
+### Bug 1 : emoji avant les images
+
+**Cause** : le seul vrai cas restant dans le code était l'ancien `DemoScan.tsx`
+(déjà remplacé par `Ardoise.tsx`/`PlatsTestes.tsx` lors de la refonte landing
+précédente — donc déjà en grande partie réglé avant ce ticket), plus un champ
+`emoji` mort dans `demoScanPlats.ts` (plus rendu nulle part, supprimé du
+modèle de données). Dans le reste de l'app (dashboard, onboarding, écran de
+scan), il n'existe **aucune** photo de repas stockée/affichée aujourd'hui
+(aucun champ photo dans `prisma/schema.prisma`) — les émojis 🍽️/🔥 visibles
+sur `CarteRepasRecent.tsx` et `repas/[id]/page.tsx` sont des icônes
+décoratives permanentes, pas un remplacement en attendant une image : ce
+n'est pas le même bug, et les toucher reviendrait à construire une
+fonctionnalité de stockage de photo non demandée. Laissés tels quels.
+
+**Corrigé** (`Ardoise.tsx`, `PlatsTestes.tsx`) :
+- `<img>` bruts remplacés par `next/image` (`fill` + conteneur à
+  `aspect-ratio`/taille fixe en `bg-creme-100`, jamais d'emoji) : l'espace
+  est réservé dès le premier rendu, zéro saut de mise en page.
+- Fondu d'opacité uniquement sur l'image une fois décodée (`onLoad`),
+  désactivé sous `prefers-reduced-motion`.
+- `sizes` posé sur chaque `<Image>` pour un srcset adapté au mobile.
+- Cache long (`Cache-Control: public, max-age=31536000, immutable`) sur
+  `/landing/demo/*` via `headers()` dans `next.config.mjs`.
+- Service worker (`public/sw.js`) : les 6 photos ajoutées à `APP_SHELL`
+  (précache dès l'installation) et `/landing/` ajouté à la règle
+  cache-d'abord du fetch handler — version du cache passée à v2 pour que
+  les clients déjà installés réinstallent et récupèrent les nouveaux
+  fichiers précachés.
+- Aucune image "visible dès l'arrivée" n'existe sur cette landing (le hero
+  n'affiche aucune photo avant interaction : l'ardoise ne montre une photo
+  qu'au tap, "Les plats testés" est sous la ligne de flottaison) — donc pas
+  de `priority` posé nulle part, volontairement : en forcer un aurait
+  gaspillé du préchargement sur une image qui n'est pas le vrai LCP.
+
+### Bug 2 : débordement horizontal
+
+**Audit** : recherche systématique des causes classiques (`100vw`, largeurs
+fixes en px, marges négatives, lignes de texte non protégées, flex/grid sans
+`min-width: 0`) sur toute la codebase. Rien trouvé qui dépasse réellement à
+320px. Deux `min-w-0` ajoutés par prudence sur des spans texte dans des
+lignes flex sans largeur explicite (`Ardoise.tsx`, nom du plat ;
+`PlatsTestes.tsx`, bloc texte sous chaque photo) — pas un bug confirmé, mais
+ce sont exactement les endroits où un nom de plat plus long pourrait un jour
+forcer un débordement sans cette protection.
+
+**Testé** : script Playwright qui mesure `scrollWidth` de **chaque élément**
+du DOM (pas seulement `document.documentElement`) à 320px, 360px, 375px et
+414px sur la landing complète — `overflowCount: 0` aux quatre largeurs,
+aucun élément ne dépasse `clientWidth`.
+
+**Limite assumée** : les écrans d'onboarding et du dashboard n'ont **pas pu
+être testés en rendu réel** dans ce bac à sable (pas de Postgres local
+disponible, ces pages nécessitent une session authentifiée + la base). Audit
+statique du code de ces écrans fait (mêmes recherches que ci-dessus :
+`SelecteurJoursSemaine`, `CalendrierMensuel`, `GraphiqueEvolutionPoids`,
+`MockupEcranAccueil`...) sans rien trouver de suspect, mais ça reste une
+vérification de code, pas un rendu réel. Si le débordement signalé se
+reproduit précisément sur un de ces écrans, le dire pour un test ciblé.
+
+### Bug 3 : "Application error: a server-side exception has occurred" (digest 2112298836)
+
+**Accès Vercel demandé mais indisponible** : les outils MCP Vercel
+(`get_runtime_errors`, `get_runtime_logs`, `filter_project_envs`,
+`list_deployments`) renvoient tous une 403 sur le scope `assiettly` — cette
+session n'a pas l'autorisation de lire les logs ni la liste des variables
+d'environnement du projet `assiettly-web` sur Vercel. Pas de CLI `vercel`
+disponible non plus dans ce bac à sable comme repli. Le digest exact n'a
+donc **pas pu être confirmé** dans les logs — ce qui suit est une cause
+identifiée par lecture directe du code, de loin la plus probable vu le
+symptôme (erreur générique, aucune page précisée = à l'échelle du site).
+
+**Cause la plus probable identifiée** : `middleware.ts` (qui tourne sur
+quasiment toutes les requêtes du site, cf. son `matcher`) et `app/page.tsx`
+(la landing) appelaient tous deux
+`createServerClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, …)`
+sans aucune protection. Si l'une de ces deux variables est absente, vide ou
+mal nommée dans l'environnement **Production** de Vercel (indépendamment de
+Preview/Development), `@supabase/ssr` lève une exception synchrone — dans le
+middleware, ça fait planter littéralement toutes les pages du site avec
+l'écran générique Next.js, exactement le symptôme décrit.
+
+**Corrigé** :
+- `middleware.ts` : la création du client Supabase et `getUser()` sont
+  maintenant dans un `try/catch`. En cas d'échec (config manquante,
+  Supabase injoignable), traité comme "non connecté" — les routes protégées
+  redirigent normalement vers `/connexion` (comportement déjà existant),
+  les routes publiques restent servies. Erreur loguée côté serveur
+  (visible dans les logs Vercel) plutôt que de faire planter le site.
+- `app/page.tsx` : même protection autour de `supabase.auth.getUser()` —
+  au pire un utilisateur déjà connecté revoit la page publique au lieu
+  d'être redirigé vers `/accueil`, plutôt qu'un écran blanc pour tout le
+  monde.
+- `app/error.tsx` (limite une erreur à son segment) et
+  `app/global-error.tsx` (filet pour une exception dans `layout.tsx`
+  lui-même, inatteignable par `error.tsx`) ajoutés : écran en français, ton
+  de la marque, bouton "Réessayer" + retour à l'accueil, au lieu de l'écran
+  blanc générique en anglais.
+
+**À vérifier côté utilisateur, puisque les logs/variables Vercel n'ont pas
+pu être consultés depuis cette session** :
+1. Dans Vercel → Project Settings → Environment Variables, confirmer que
+   `NEXT_PUBLIC_SUPABASE_URL` et `NEXT_PUBLIC_SUPABASE_ANON_KEY` existent
+   bien et sont cochées pour l'environnement **Production** (pas seulement
+   Preview/Development) — c'est la cause la plus probable.
+2. Si le problème persiste après ce correctif (il ne devrait plus planter,
+   mais confirmer que Supabase répond), consulter les logs runtime du
+   projet `assiettly-web` directement dans le dashboard Vercel en filtrant
+   sur le digest `2112298836`, ou relancer `vercel logs --project
+   assiettly-web` en local avec un compte ayant accès à l'équipe.
+3. Autoriser cette connexion MCP Vercel sur le scope "assiettly" (consentement
+   à (re)donner côté Vercel) si l'accès aux logs doit être possible
+   directement depuis une session future.

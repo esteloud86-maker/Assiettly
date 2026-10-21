@@ -46,8 +46,6 @@ export interface ResultatDemoScan {
 export interface PlatDemo {
   id: string;
   nom: string;
-  /** Repli visuel tant que la vraie photo n'est pas déposée dans /public/landing/demo/. */
-  emoji: string;
   image: string;
   resultat: ResultatDemoScan | null;
 }
@@ -56,7 +54,6 @@ export const PLATS_DEMO: PlatDemo[] = [
   {
     id: "quiche-lorraine",
     nom: "Quiche lorraine",
-    emoji: "🥧",
     image: "/landing/demo/quiche-lorraine.webp",
     resultat: {
       caloriesKcal: 490,
@@ -75,7 +72,6 @@ export const PLATS_DEMO: PlatDemo[] = [
   {
     id: "boeuf-bourguignon",
     nom: "Bœuf bourguignon",
-    emoji: "🍲",
     image: "/landing/demo/boeuf-bourguignon.webp",
     resultat: {
       caloriesKcal: 621,
@@ -96,7 +92,6 @@ export const PLATS_DEMO: PlatDemo[] = [
   {
     id: "croissant",
     nom: "Croissant",
-    emoji: "🥐",
     image: "/landing/demo/croissant.webp",
     resultat: {
       caloriesKcal: 240,
@@ -112,7 +107,6 @@ export const PLATS_DEMO: PlatDemo[] = [
   {
     id: "croque-monsieur",
     nom: "Croque-monsieur",
-    emoji: "🥪",
     image: "/landing/demo/croque-monsieur.webp",
     resultat: {
       caloriesKcal: 473,
@@ -131,7 +125,6 @@ export const PLATS_DEMO: PlatDemo[] = [
   {
     id: "poulet-riz",
     nom: "Poulet-riz (salle de sport)",
-    emoji: "🍗",
     image: "/landing/demo/poulet-riz.webp",
     resultat: {
       caloriesKcal: 588,
@@ -150,7 +143,6 @@ export const PLATS_DEMO: PlatDemo[] = [
   {
     id: "ratatouille",
     nom: "Ratatouille",
-    emoji: "🍆",
     image: "/landing/demo/ratatouille.webp",
     resultat: {
       caloriesKcal: 247,

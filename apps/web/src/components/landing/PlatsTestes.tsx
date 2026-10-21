@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useState } from "react";
 import { PLATS_DEMO } from "@/data/demoScanPlats";
 
@@ -26,6 +27,9 @@ const COULEUR_CONFIANCE: Record<"elevee" | "moyenne" | "faible", string> = {
  */
 export function PlatsTestes() {
   const [selectionId, setSelectionId] = useState<string | null>(null);
+  // cf. Ardoise.tsx : contrôle le fondu d'entrée, jamais d'emoji en attendant
+  // — le fond ivoire (bg-creme-100) réserve déjà la place correcte.
+  const [chargees, setChargees] = useState<Set<string>>(new Set());
   const plats = PLATS_DEMO.filter((p) => p.resultat);
   const selection = plats.find((p) => p.id === selectionId) ?? null;
 
@@ -51,11 +55,19 @@ export function PlatsTestes() {
                 actif ? "ring-2 ring-corail-500" : ""
               }`}
             >
-              <div className="aspect-[4/3] w-full bg-creme-100">
-                {/* eslint-disable-next-line @next/next/no-img-element -- photo déposée à la main dans /public */}
-                <img src={plat.image} alt={plat.nom} loading="lazy" className="h-full w-full object-cover" />
+              <div className="relative aspect-[4/3] w-full overflow-hidden bg-creme-100">
+                <Image
+                  src={plat.image}
+                  alt={plat.nom}
+                  fill
+                  sizes="(min-width: 640px) 33vw, 50vw"
+                  className={`object-cover transition-opacity duration-300 motion-reduce:transition-none ${
+                    chargees.has(plat.id) ? "opacity-100" : "opacity-0"
+                  }`}
+                  onLoad={() => setChargees((s) => new Set(s).add(plat.id))}
+                />
               </div>
-              <div className="p-3">
+              <div className="min-w-0 p-3">
                 <p className="font-titre text-sm font-semibold leading-snug text-charbon-800">{plat.nom}</p>
                 <p className="mt-0.5 text-sm text-charbon-600">{plat.resultat!.caloriesKcal} kcal</p>
               </div>

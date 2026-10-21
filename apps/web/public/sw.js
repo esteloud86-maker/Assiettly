@@ -4,8 +4,24 @@
 //    le calcul nutritionnel nécessitent une connexion, cf. PROGRESS.md)
 // 2) réception des notifications push (rappels de flamme)
 
-const CACHE_VERSION = "assiettly-shell-v1";
-const APP_SHELL = ["/manifest.webmanifest", "/icons/icon-192.png", "/icons/icon-512.png", "/icon-flamme-192.png"];
+// v2 : ajout des photos de la démo du hero au précache (cf. bug "emoji
+// avant les images" — en les ayant déjà en cache, elles s'affichent
+// instantanément dès la 2e visite, sans round-trip réseau). Le changement
+// de liste exige un bump de version pour que les clients déjà installés
+// réinstallent le service worker et récupèrent ces fichiers.
+const CACHE_VERSION = "assiettly-shell-v2";
+const APP_SHELL = [
+  "/manifest.webmanifest",
+  "/icons/icon-192.png",
+  "/icons/icon-512.png",
+  "/icon-flamme-192.png",
+  "/landing/demo/quiche-lorraine.webp",
+  "/landing/demo/boeuf-bourguignon.webp",
+  "/landing/demo/croissant.webp",
+  "/landing/demo/croque-monsieur.webp",
+  "/landing/demo/poulet-riz.webp",
+  "/landing/demo/ratatouille.webp",
+];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
@@ -40,9 +56,14 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Assets statiques versionnés (JS/CSS buildés, polices, icônes) : cache
-  // d'abord, ils ne changent jamais de contenu sous une même URL.
-  if (url.pathname.startsWith("/_next/static/") || url.pathname.startsWith("/icons/")) {
+  // Assets statiques versionnés (JS/CSS buildés, polices, icônes, photos de
+  // la démo) : cache d'abord, ils ne changent jamais de contenu sous une
+  // même URL.
+  if (
+    url.pathname.startsWith("/_next/static/") ||
+    url.pathname.startsWith("/icons/") ||
+    url.pathname.startsWith("/landing/")
+  ) {
     event.respondWith(
       caches.match(request).then(
         (cached) =>
