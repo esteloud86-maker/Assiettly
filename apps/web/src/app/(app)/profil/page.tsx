@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { BoutonExportDonnees } from "@/components/BoutonExportDonnees";
 import { BoutonSupprimerCompte } from "@/components/BoutonSupprimerCompte";
 import { NotificationsToggle } from "@/components/NotificationsToggle";
@@ -37,15 +38,39 @@ export default async function ProfilPage() {
             <p className="mb-4 text-sarcelle-500">
               {profile.subscription?.status === "TRIALING" ? "Essai gratuit en cours ✨" : "Abonnement actif ✨"}
             </p>
-            <form action={ouvrirPortailAbonnement}>
-              <button type="submit" className="rounded-xl bg-charbon-800 px-5 py-2.5 font-semibold text-white">
-                Gérer mon abonnement
-              </button>
-            </form>
+            {profile.stripeCustomerId ? (
+              <form action={ouvrirPortailAbonnement}>
+                <button type="submit" className="rounded-xl bg-charbon-800 px-5 py-2.5 font-semibold text-white">
+                  Gérer mon abonnement
+                </button>
+              </form>
+            ) : (
+              // Premium obtenu uniquement via parrainage, sans être jamais
+              // passé par Stripe (cf. server/actions/parrainage.ts) : pas de
+              // portail d'abonnement à proposer, il n'y a rien à gérer côté
+              // facturation tant que ce profil ne s'abonne pas pour de vrai.
+              <p className="text-sm text-charbon-400">
+                Premium offert via parrainage
+                {profile.subscription?.trialEndsAt
+                  ? ` jusqu'au ${profile.subscription.trialEndsAt.toLocaleDateString("fr-FR")}`
+                  : ""}
+                .
+              </p>
+            )}
           </>
         ) : (
           <p className="text-charbon-400">Aucun abonnement actif.</p>
         )}
+      </div>
+
+      <div className="rounded-2xl bg-creme-50 p-6 shadow-sm">
+        <h2 className="mb-2 font-titre font-semibold text-charbon-800">Invite un ami</h2>
+        <p className="mb-3 text-sm text-charbon-400">
+          Un mois de Premium offert pour vous deux quand ton invité·e enregistre ses 3 premiers repas.
+        </p>
+        <Link href="/parrainage" className="inline-block rounded-xl bg-corail-500 px-5 py-2.5 font-semibold text-white">
+          Mon lien de parrainage
+        </Link>
       </div>
 
       <div className="rounded-2xl bg-creme-50 p-6 shadow-sm">

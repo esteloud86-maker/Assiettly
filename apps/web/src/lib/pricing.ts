@@ -25,3 +25,30 @@ export const TARIFS = {
 
 /** Quota de scans par photo pour un profil non premium (hors essai), par jour calendaire (Europe/Paris). */
 export const SCANS_GRATUITS_PAR_JOUR = 3;
+
+/**
+ * Gels de flamme (freezes) par mois calendaire. Remplace l'ancienne
+ * constante fixe `FREEZES_MAX_PAR_MOIS` de `@assiettly/shared` — la limite
+ * dépend maintenant du statut premium, vérifiée côté serveur dans
+ * `server/streak.ts` (`geler`).
+ */
+export const FREEZES_GRATUIT_PAR_MOIS = 2;
+export const FREEZES_PREMIUM_PAR_MOIS = 5;
+
+export function freezesMaxParMois(premium: boolean): number {
+  return premium ? FREEZES_PREMIUM_PAR_MOIS : FREEZES_GRATUIT_PAR_MOIS;
+}
+
+/**
+ * Favoris et "Répéter ce repas" : fonctionnalité réservée à Premium (pas de
+ * palier gratuit annoncé pour l'instant — cf. PROGRESS.md, le brief ne liste
+ * ça que sous Premium).
+ */
+export const FAVORIS_RESERVE_PREMIUM = true;
+
+/** Nombre de repas à enregistrer pour qu'un filleul valide le parrainage. */
+export const PARRAINAGE_REPAS_REQUIS = 3;
+/** Mois Premium offerts à chaque parrainage validé (parrain ET filleul). */
+export const PARRAINAGE_MOIS_OFFERTS = 1;
+/** Anti-abus : plafond de récompenses accordées par parrain (cf. brief viralité). */
+export const PARRAINAGE_PLAFOND_PAR_PARRAIN = 12;

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { CarteCaloriesJour } from "@/components/dashboard/CarteCaloriesJour";
 import { CarteRepasRecent } from "@/components/dashboard/CarteRepasRecent";
 import { CartesMacroPaginees } from "@/components/dashboard/CartesMacroPaginees";
@@ -6,6 +7,8 @@ import { SelecteurJoursSemaine } from "@/components/dashboard/SelecteurJoursSema
 import { aujourdHuiLocal } from "@/lib/date";
 import { obtenirRepasDuJour, obtenirSemaineDashboard } from "@/server/actions/meals";
 import { requireProfile } from "@/server/auth";
+import { estPremium } from "@/server/billing";
+import { flammeVientDetreCasseeSansGel } from "@/server/streak";
 
 // Apport en fibres usuellement recommandé par jour — sert uniquement à donner
 // un repère visuel sur la carte "Fibres" (pas un objectif personnalisé).
@@ -32,8 +35,23 @@ export default async function AccueilPage() {
       )
     : 0;
 
+  const proposerGelPremium = !estPremium(profile.subscription) && flammeVientDetreCasseeSansGel(profile.streakSummary);
+
   return (
     <div className="space-y-6">
+      {proposerGelPremium ? (
+        <Link
+          href="/paywall?source=freeze"
+          className="block rounded-2xl bg-charbon-800 p-4 text-creme-50 shadow-sm"
+        >
+          <p className="font-titre font-semibold">Ta flamme s&rsquo;est éteinte</p>
+          <p className="mt-1 text-sm text-creme-100/80">
+            Tu avais déjà utilisé tes gels gratuits ce mois-ci. Premium t&rsquo;en donne plus pour les jours
+            imprévus. →
+          </p>
+        </Link>
+      ) : null}
+
       <SelecteurJoursSemaine jours={joursSemaine} />
 
       {goal ? (

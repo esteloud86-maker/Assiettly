@@ -1,4 +1,4 @@
-import { SCANS_GRATUITS_PAR_JOUR, TARIFS } from "@/lib/pricing";
+import { FREEZES_GRATUIT_PAR_MOIS, FREEZES_PREMIUM_PAR_MOIS, SCANS_GRATUITS_PAR_JOUR, TARIFS } from "@/lib/pricing";
 
 const QUESTIONS = [
   {
@@ -17,8 +17,7 @@ const QUESTIONS = [
   },
   {
     question: "Comment fonctionne la flamme, et que se passe-t-il si je rate un jour ?",
-    reponse:
-      "Ta flamme avance chaque jour où tu restes dans une marge de ±10 % autour de ton objectif calorique. Un jour manqué l'éteint — mais tu as 2 freezes (jours de grâce) par mois pour la préserver si besoin, sans te sentir pénalisé·e pour un écart ponctuel.",
+    reponse: `Ta flamme avance chaque jour où tu restes dans une marge de ±10 % autour de ton objectif calorique. Un jour manqué l'éteint — mais tu as ${FREEZES_GRATUIT_PAR_MOIS} freezes (jours de grâce) par mois pour la préserver si besoin (${FREEZES_PREMIUM_PAR_MOIS} en Premium), sans te sentir pénalisé·e pour un écart ponctuel.`,
   },
   {
     question: "Puis-je annuler mon abonnement à tout moment ?",

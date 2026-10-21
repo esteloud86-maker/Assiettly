@@ -8,6 +8,7 @@ const ACTIONS = [
   { href: "/journal/ajouter?mode=code-barres", icone: "📦", label: "Code-barres" },
   { href: "/journal/ajouter", icone: "🔎", label: "Recherche manuelle" },
   { href: "/journal/ajouter?mode=manuel", icone: "✍️", label: "Saisie manuelle" },
+  { href: "/journal/favoris", icone: "⭐", label: "Répéter un favori" },
 ];
 
 export function MenuActionRapide() {

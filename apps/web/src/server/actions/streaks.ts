@@ -1,16 +1,19 @@
 "use server";
 
-import { FREEZES_MAX_PAR_MOIS, freezeStreakSchema, palierAtteint, prochainPalier } from "@assiettly/shared";
+import { freezeStreakSchema, palierAtteint, prochainPalier } from "@assiettly/shared";
 import { revalidatePath } from "next/cache";
 import { aujourdHuiLocalCommeDate } from "@/lib/date";
+import { freezesMaxParMois } from "@/lib/pricing";
 import { prisma } from "@/lib/prisma";
 import { requireProfile } from "@/server/auth";
+import { estPremium } from "@/server/billing";
 import { geler } from "@/server/streak";
 
 export async function obtenirResumeStreak() {
   const profile = await requireProfile();
   const summary = await prisma.streakSummary.findUnique({ where: { profileId: profile.id } });
   const streakActuel = summary?.streakActuel ?? 0;
+  const freezesMax = freezesMaxParMois(estPremium(profile.subscription));
 
   const now = aujourdHuiLocalCommeDate();
   const memeMois =
@@ -22,7 +25,8 @@ export async function obtenirResumeStreak() {
     streakActuel,
     streakMax: summary?.streakMax ?? 0,
     dernierJourFlamme: summary?.dernierJourFlamme ?? null,
-    freezesRestantsCeMois: FREEZES_MAX_PAR_MOIS - (memeMois ? (summary?.freezesUtilisesMois ?? 0) : 0),
+    freezesMaxCeMois: freezesMax,
+    freezesRestantsCeMois: freezesMax - (memeMois ? (summary?.freezesUtilisesMois ?? 0) : 0),
     palierAtteint: palierAtteint(streakActuel),
     prochainPalier: prochainPalier(streakActuel),
   };
@@ -39,7 +43,8 @@ export async function obtenirCalendrierStreak(debut: string, fin: string) {
 export async function gelerJour(date: string) {
   const data = freezeStreakSchema.parse({ date });
   const profile = await requireProfile();
-  const resultat = await geler(profile.id, new Date(data.date));
+  const freezesMax = freezesMaxParMois(estPremium(profile.subscription));
+  const resultat = await geler(profile.id, new Date(data.date), freezesMax);
 
   revalidatePath("/streaks/calendrier");
   revalidatePath("/accueil");

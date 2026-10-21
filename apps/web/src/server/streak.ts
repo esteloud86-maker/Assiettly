@@ -1,10 +1,7 @@
-import {
-  calculerStreakSummary,
-  evaluerObjectifJour,
-  FREEZES_MAX_PAR_MOIS,
-  type JourStreak,
-} from "@assiettly/shared";
-import { Prisma } from "@prisma/client";
+import { calculerStreakSummary, evaluerObjectifJour, type JourStreak } from "@assiettly/shared";
+import { Prisma, type StreakSummary } from "@prisma/client";
+import { aujourdHuiLocalCommeDate } from "@/lib/date";
+import { FREEZES_GRATUIT_PAR_MOIS } from "@/lib/pricing";
 import { prisma } from "@/lib/prisma";
 
 type Db = typeof prisma | Prisma.TransactionClient;
@@ -91,7 +88,12 @@ async function recalculerResumeStreak(profileId: string, db: Db = prisma): Promi
 }
 
 /**
- * Utilise un freeze pour geler un jour manqué (max 2 par mois calendaire).
+ * Utilise un freeze pour geler un jour manqué (max `freezesMax` par mois
+ * calendaire — 2 en gratuit, 5 en Premium, cf. `lib/pricing.ts`
+ * `freezesMaxParMois()` ; l'appelant calcule la valeur à partir du statut
+ * réel du profil, cette fonction ne connaît que le nombre, jamais le
+ * statut — la vérification Premium doit rester faite une seule fois, côté
+ * serveur, par `estPremium()`).
  *
  * Tout le "lire le compteur de freezes du mois → vérifier la limite →
  * l'incrémenter" est exécuté dans une transaction SERIALIZABLE : sans ça,
@@ -101,7 +103,11 @@ async function recalculerResumeStreak(profileId: string, db: Db = prisma): Promi
  * dépasser la limite mensuelle de freezes. Sous SERIALIZABLE, Postgres fait
  * plutôt échouer l'une des deux transactions (erreur Prisma P2034).
  */
-export async function geler(profileId: string, date: Date): Promise<{ ok: true } | { ok: false; raison: string }> {
+export async function geler(
+  profileId: string,
+  date: Date,
+  freezesMax: number,
+): Promise<{ ok: true } | { ok: false; raison: string }> {
   const debutJour = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
   const moisReference = new Date(Date.UTC(debutJour.getUTCFullYear(), debutJour.getUTCMonth(), 1));
 
@@ -122,8 +128,8 @@ export async function geler(profileId: string, date: Date): Promise<{ ok: true }
           summary.moisReferenceFreeze.getUTCMonth() === moisReference.getUTCMonth();
         const freezesUtilisesCeMois = memeMois ? (summary?.freezesUtilisesMois ?? 0) : 0;
 
-        if (freezesUtilisesCeMois >= FREEZES_MAX_PAR_MOIS) {
-          return { ok: false, raison: `Limite de ${FREEZES_MAX_PAR_MOIS} freezes par mois atteinte.` };
+        if (freezesUtilisesCeMois >= freezesMax) {
+          return { ok: false, raison: `Limite de ${freezesMax} freezes par mois atteinte.` };
         }
 
         await tx.streakDay.upsert({
@@ -156,4 +162,29 @@ export async function geler(profileId: string, date: Date): Promise<{ ok: true }
     }
     throw erreur;
   }
+}
+
+/**
+ * Détecte le déclencheur de paywall contextuel "flamme perdue qu'un gel
+ * Premium aurait sauvée" (cf. brief viralité) : la flamme vient de s'éteindre
+ * (pas une perte ancienne), ET les gels gratuits du mois étaient déjà tous
+ * utilisés au moment de la perte — donc un gel supplémentaire (réservé
+ * Premium) aurait vraiment pu la sauver. Jamais affiché si l'un des deux
+ * n'est pas vrai : pas de fausse urgence.
+ */
+export function flammeVientDetreCasseeSansGel(summary: StreakSummary | null): boolean {
+  if (!summary || summary.streakActuel !== 0 || !summary.dernierJourFlamme) return false;
+
+  const aujourdHui = aujourdHuiLocalCommeDate();
+  const avantHier = new Date(aujourdHui);
+  avantHier.setUTCDate(avantHier.getUTCDate() - 2);
+  const perteRecente = summary.dernierJourFlamme.getTime() >= avantHier.getTime();
+  if (!perteRecente) return false;
+
+  const memeMois =
+    summary.moisReferenceFreeze &&
+    summary.moisReferenceFreeze.getUTCFullYear() === aujourdHui.getUTCFullYear() &&
+    summary.moisReferenceFreeze.getUTCMonth() === aujourdHui.getUTCMonth();
+
+  return !!memeMois && summary.freezesUtilisesMois >= FREEZES_GRATUIT_PAR_MOIS;
 }

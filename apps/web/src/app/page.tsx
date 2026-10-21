@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { CommentCaFonctionne } from "@/components/landing/CommentCaFonctionne";
 import { CtaFinal } from "@/components/landing/CtaFinal";
+import { DansLApp } from "@/components/landing/DansLApp";
 import { Faq } from "@/components/landing/Faq";
 import { FooterLanding } from "@/components/landing/FooterLanding";
 import { HeaderLanding } from "@/components/landing/HeaderLanding";
@@ -40,6 +41,7 @@ export default async function LandingPage() {
       <CommentCaFonctionne />
       <PlatsTestes />
       <LivreOr />
+      <DansLApp />
       <Tarifs />
       <Faq />
       <CtaFinal />

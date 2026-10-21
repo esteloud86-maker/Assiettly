@@ -17,6 +17,18 @@ const STATUT_STRIPE_VERS_INTERNE: Record<Stripe.Subscription.Status, Subscriptio
   paused: "CANCELED",
 };
 
+async function enregistrerConversionAbonnement(subscription: Stripe.Subscription) {
+  const profileId = subscription.metadata?.profileId;
+  const profile = profileId
+    ? await prisma.profile.findUnique({ where: { id: profileId } })
+    : await prisma.profile.findFirst({ where: { stripeCustomerId: subscription.customer as string } });
+  if (!profile) return;
+
+  await prisma.analyticsEvent.create({
+    data: { profileId: profile.id, type: "ABONNEMENT_DEMARRE", contexte: { formule: subscription.items.data[0]?.price.id } },
+  });
+}
+
 async function synchroniserAbonnement(subscription: Stripe.Subscription) {
   const profileId = subscription.metadata?.profileId;
 
@@ -69,6 +81,13 @@ export async function POST(request: Request) {
 
   switch (event.type) {
     case "customer.subscription.created":
+      await synchroniserAbonnement(event.data.object as Stripe.Subscription);
+      // Événement de conversion réelle (cf. brief viralité, "suis les
+      // événements... conversions") — ici, pas dans le clic du bouton
+      // "Essayer gratuitement", qui ne garantit pas que l'utilisateur soit
+      // allé au bout de Stripe Checkout.
+      await enregistrerConversionAbonnement(event.data.object as Stripe.Subscription);
+      break;
     case "customer.subscription.updated":
     case "customer.subscription.deleted":
       await synchroniserAbonnement(event.data.object as Stripe.Subscription);

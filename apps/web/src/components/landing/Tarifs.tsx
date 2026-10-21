@@ -1,10 +1,16 @@
 import Link from "next/link";
-import { TARIFS } from "@/lib/pricing";
+import { FREEZES_PREMIUM_PAR_MOIS, TARIFS } from "@/lib/pricing";
 
-// Une seule ligne : c'est la seule chose que Premium débloque réellement
-// aujourd'hui (cf. server/actions/scan.ts, estPremium ne gate que le quota
-// de scans) — ne rien ajouter ici qui ne soit pas vérifié dans le code.
-const AVANTAGES_PREMIUM = ["Scans de repas par photo illimités"];
+// Chaque ligne correspond à une fonctionnalité réellement livrée et
+// vérifiée côté serveur (cf. server/actions/scan.ts, server/streak.ts,
+// server/actions/favoris.ts, lib/carteAssiette.ts) — jamais de "bientôt"
+// ici.
+const AVANTAGES_PREMIUM = [
+  "Scans de repas par photo illimités",
+  "Repas favoris et « Répéter » en un tap",
+  `${FREEZES_PREMIUM_PAR_MOIS} gels de flamme par mois`,
+  "Carte de partage sans filigrane",
+];
 
 /**
  * Présentées comme des "formules" de carte (menu/semaine) plutôt que deux

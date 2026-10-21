@@ -7,6 +7,7 @@ import { redirect } from "next/navigation";
 import { aujourdHuiLocalCommeDate } from "@/lib/date";
 import { prisma } from "@/lib/prisma";
 import { requireProfile } from "@/server/auth";
+import { verifierEtRecompenserParrainage } from "@/server/actions/parrainage";
 import { recupererProduitParCodeBarre } from "@/server/openFoodFacts";
 import { recomputerStreakPourJour } from "@/server/streak";
 
@@ -120,6 +121,14 @@ export async function ajouterRepas(input: AjouterRepasInput) {
   });
 
   await recomputerStreakPourJour(profile.id, new Date(data.date));
+
+  try {
+    await verifierEtRecompenserParrainage(profile.id);
+  } catch (erreur) {
+    // Un parrainage raté ne doit jamais empêcher l'enregistrement du repas
+    // lui-même — au pire la récompense sera retentée au prochain repas.
+    console.error("[parrainage] Échec de la vérification après ajout de repas", erreur);
+  }
 
   revalidatePath("/accueil");
   revalidatePath("/journal");

@@ -55,6 +55,13 @@ enum SubscriptionStatus {
   INCOMPLETE
 }
 
+enum EvenementType {
+  PARTAGE_CARTE
+  INVITATION_ENVOYEE
+  PAYWALL_VU
+  ABONNEMENT_DEMARRE
+}
+
 enum TypeAlimentation {
   EQUILIBRE
   VEGETARIEN
@@ -89,16 +96,24 @@ model Profile {
   motivationPrincipale MotivationPrincipale? @map("motivation_principale")
   onboardingTermine  Boolean         @default(false) @map("onboarding_termine")
   stripeCustomerId   String?         @unique @map("stripe_customer_id")
+  // Parrainage : code personnel unique, généré à la création du profil
+  // (cf. server/auth.ts) — sert à construire le lien d'invitation
+  // /inscription?ref=CODE.
+  codeParrainage     String?         @unique @map("code_parrainage")
   createdAt          DateTime        @default(now()) @map("created_at")
 
-  goals             Goal[]
-  weightLogs        WeightLog[]
-  meals             Meal[]
-  streakDays        StreakDay[]
-  streakSummary     StreakSummary?
-  subscription      Subscription?
-  pushSubscriptions PushSubscription[]
-  foodAnalysisLogs  FoodAnalysisLog[]
+  goals              Goal[]
+  weightLogs         WeightLog[]
+  meals              Meal[]
+  streakDays         StreakDay[]
+  streakSummary      StreakSummary?
+  subscription       Subscription?
+  pushSubscriptions  PushSubscription[]
+  foodAnalysisLogs   FoodAnalysisLog[]
+  repasFavoris       RepasFavori[]
+  analyticsEvents    AnalyticsEvent[]
+  parrainagesEnvoyes Parrainage[]       @relation("ParrainagesEnvoyes")
+  parrainageRecu     Parrainage?        @relation("ParrainagesRecus")
 
   @@map("profiles")
 }
@@ -239,6 +254,62 @@ model PushSubscription {
 
   @@index([profileId])
   @@map("push_subscriptions")
+}
+
+// Repas favoris, pour "Répéter ce repas" en un tap (Premium, cf.
+// lib/pricing.ts). `items` reprend exactement la forme de
+// `AjouterRepasInput["items"]` (server/actions/meals.ts) — "répéter"
+// consiste à repasser ce JSON tel quel à `ajouterRepas()` avec la date du
+// jour, sans logique dupliquée.
+model RepasFavori {
+  id        String   @id @default(uuid()) @db.Uuid
+  profileId String   @map("profile_id") @db.Uuid
+  profile   Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  nom       String
+  type      MealType
+  items     Json
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([profileId])
+  @@map("repas_favoris")
+}
+
+// Suivi des mécaniques virales/paywall (partages, invitations, paywalls
+// vus, conversions) — sert uniquement à mesurer ce qui marche, jamais
+// affiché à l'utilisateur comme un chiffre marketing. Supprimé en cascade
+// avec le profil (droit à l'effacement RGPD, cf. server/actions/rgpd.ts).
+model AnalyticsEvent {
+  id        String         @id @default(uuid()) @db.Uuid
+  profileId String         @map("profile_id") @db.Uuid
+  profile   Profile        @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  type      EvenementType
+  contexte  Json?
+  createdAt DateTime       @default(now()) @map("created_at")
+
+  @@index([type, createdAt])
+  @@index([profileId])
+  @@map("analytics_events")
+}
+
+// Parrainage : un filleul n'a qu'un seul parrain (`filleulId` unique) — le
+// premier lien de parrainage valide gagne, pas de cumul. `valide` passe à
+// `true` quand le filleul a fini l'onboarding ET enregistré au moins 3
+// repas (cf. server/actions/parrainage.ts) ; `recompenseAccordee` une fois
+// le mois Premium effectivement accordé aux deux côtés (idempotence :
+// jamais accordé deux fois pour le même parrainage).
+model Parrainage {
+  id                 String    @id @default(uuid()) @db.Uuid
+  parrainId          String    @map("parrain_id") @db.Uuid
+  parrain            Profile   @relation("ParrainagesEnvoyes", fields: [parrainId], references: [id], onDelete: Cascade)
+  filleulId          String    @unique @map("filleul_id") @db.Uuid
+  filleul            Profile   @relation("ParrainagesRecus", fields: [filleulId], references: [id], onDelete: Cascade)
+  valide             Boolean   @default(false)
+  valideLe           DateTime? @map("valide_le")
+  recompenseAccordee Boolean   @default(false) @map("recompense_accordee")
+  createdAt          DateTime  @default(now()) @map("created_at")
+
+  @@index([parrainId])
+  @@map("parrainages")
 }
 
 // Journal des appels d'analyse de repas par photo (API Claude) — sert à

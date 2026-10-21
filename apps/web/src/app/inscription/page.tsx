@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { BoutonGoogle } from "@/components/auth/BoutonGoogle";
+import { CaptureParrainageCookie } from "@/components/auth/CaptureParrainageCookie";
 import { ChampMotDePasse } from "@/components/auth/ChampMotDePasse";
 import { EcranVerificationEmail } from "@/components/auth/EcranVerificationEmail";
 import { createClient } from "@/lib/supabase/client";
@@ -54,6 +55,9 @@ export default function InscriptionPage() {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-creme-100 px-4 py-10">
+      <Suspense fallback={null}>
+        <CaptureParrainageCookie />
+      </Suspense>
       <div className="w-full max-w-sm space-y-8">
         <div className="text-center">
           <Link href="/" className="font-titre text-3xl font-bold text-charbon-800">

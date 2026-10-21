@@ -12,8 +12,15 @@ export class ErreurQuotaAnthropic extends Error {
   }
 }
 
+// Exporté séparément : les Server Actions Next.js ne préservent pas la
+// classe d'une erreur jusqu'au client (seulement `.message`), donc le
+// client compare ce texte exact pour détecter ce cas précis et proposer le
+// paywall contextuel plutôt qu'un simple message d'erreur (cf. EcranScan.tsx).
+export const MESSAGE_QUOTA_SCAN_GRATUIT =
+  "Tu as atteint la limite de 3 scans par jour de l'offre gratuite. Reviens demain, ou passe en Premium pour scanner sans limite.";
+
 export class ErreurQuotaScanGratuit extends Error {
-  constructor(message = "Tu as atteint la limite de 3 scans par jour de l'offre gratuite. Reviens demain, ou passe en Premium pour scanner sans limite.") {
+  constructor(message = MESSAGE_QUOTA_SCAN_GRATUIT) {
     super(message);
     this.name = "ErreurQuotaScanGratuit";
   }

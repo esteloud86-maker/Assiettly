@@ -1969,3 +1969,220 @@ tel quel). Les 3 entrées de `avis.dev.ts` sont délibérément neutres/mitigée
 et clairement marquées comme données de test, pas comme contenu
 marketing crédible. Les vrais avis doivent venir de vrais utilisateurs —
 à ajouter dans `avis.ts` dès qu'il y en a.
+
+## Phase 1 — Fonctionnalités virales et Premium désirable
+
+Mise en œuvre de la phase 1 du brief "fonctionnalités virales et Premium" :
+carte de partage, parrainage, gels de flamme Premium, favoris/répéter,
+paywall contextuel, suivi des événements, section landing "dans l'app".
+Chaque fonctionnalité listée ci-dessous est livrée, testée (typecheck +
+build réel + tests directs en base pour la logique serveur), et vérifiée
+côté serveur — rien n'est caché seulement côté interface.
+
+### Nouveauté d'environnement : Postgres local dans ce bac à sable
+
+Pour la première fois dans cette session, un vrai Postgres local a été
+installé et démarré (`/usr/lib/postgresql/16`, utilisateur `postgres`,
+mêmes identifiants que `.env`) — ce qui a permis de faire tourner
+`prisma migrate deploy` pour de vrai (migration générée via `prisma migrate
+diff`, impossible de lancer `migrate dev` en mode non interactif), et de
+tester la logique de parrainage avec de vraies requêtes Prisma plutôt que
+seulement par la lecture du code. Cette base est locale à ce conteneur
+éphémère, aucun lien avec la vraie base Supabase de production.
+
+### 1. Neutralisation d'un problème préexistant : fausses données sur "Groupes"
+
+`FluxGroupesMock.tsx` affichait déjà, en production, des membres, streaks et
+posts **inventés** ("Membre A", streaks fictifs, réactions fictives) sous
+un bandeau "bientôt" — trouvé en explorant la nav existante, pas demandé
+explicitement mais en contradiction directe avec "aucune fonctionnalité
+n'est annoncée tant qu'elle n'existe pas" de ce même brief. Remplacé par un
+état honnête ("Les groupes arrivent bientôt", aucune donnée fictive). Les
+vrais groupes restent phase 2/3, comme demandé — pas d'architecture posée
+maintenant, le dire plutôt que la bâcler.
+
+### 2. Config premium centralisée (`lib/pricing.ts`, étendu)
+
+`FREEZES_GRATUIT_PAR_MOIS` (2), `FREEZES_PREMIUM_PAR_MOIS` (5),
+`FAVORIS_RESERVE_PREMIUM`, `PARRAINAGE_REPAS_REQUIS` (3),
+`PARRAINAGE_MOIS_OFFERTS` (1), `PARRAINAGE_PLAFOND_PAR_PARRAIN` (12) — même
+fichier que `TARIFS`/`SCANS_GRATUITS_PAR_JOUR` déjà existants, pour que
+landing/paywall/FAQ/serveur ne puissent jamais diverger. L'ancienne
+constante `FREEZES_MAX_PAR_MOIS` de `@assiettly/shared` (fixe à 2,
+peu importe le statut) est supprimée — remplacée par `freezesMaxParMois(premium)`.
+
+### 3. Gels de flamme Premium (2 → 5/mois)
+
+`server/streak.ts` (`geler()`) prend maintenant `freezesMax` en paramètre
+au lieu d'une constante fixe — calculé côté serveur dans
+`server/actions/streaks.ts` via `estPremium(profile.subscription)`, jamais
+fait confiance à l'interface. FAQ mise à jour pour afficher les deux
+chiffres dynamiquement.
+
+### 4. Favoris et "Répéter ce repas" (Premium)
+
+Nouvelle table `repas_favoris` (snapshot figé des valeurs nutritionnelles,
+même logique que `MealItem` — répéter dans 3 mois donne exactement ce qui
+a été mangé ce jour-là, pas une valeur recalculée). `server/actions/favoris.ts`
+vérifie `estPremium` côté serveur sur chaque action (ajout, liste,
+suppression, répétition). UI : étoile sur l'écran de détail d'un repas
+(`BoutonAjouterFavori.tsx`), écran dédié `/journal/favoris`
+(`ListeFavoris.tsx`, bouton "Répéter" en un tap), entrée dans le menu
+d'action rapide du dashboard. Non-Premium : upsell vers `/paywall?source=favoris`.
+
+### 5. Carte de partage "Mon assiette"
+
+Génération **entièrement côté client** via Canvas (`lib/carteAssiette.ts`)
+— aucune image envoyée ni stockée sur un serveur, pas de page publique.
+Format story 9:16, identité Assiettly (Fredoka, palette de marque), photo
+du repas + nom + kcal + macros P/G/L + flamme, filigrane "assiettly.fr"
+retiré en Premium. Partage via Web Share API avec fichier
+(`navigator.canShare`), repli sur téléchargement direct si non supporté
+(desktop). Bouton ajouté à l'écran de résultat du scan
+(`BoutonPartagerCarte.tsx`) — la photo du repas, jusqu'ici jetée après
+analyse, est maintenant conservée en mémoire le temps de l'écran
+(jamais envoyée nulle part d'autre). Événement `PARTAGE_CARTE` loggé à
+chaque partage réussi.
+
+Aperçu dev honnête construit pour pouvoir le capturer sans session
+authentifiée (`/dev-preview-carte`, 404 en production — vérifié sur un
+vrai build) : utilise les vraies données du bœuf bourguignon déjà dans
+`demoScanPlats.ts`, un seul chiffre (le streak "12 jours") est illustratif
+et clairement marqué comme tel dans l'écran.
+
+### 6. Suivi des événements (`AnalyticsEvent`)
+
+Nouvelle table + `server/actions/analytics.ts` (`enregistrerEvenement`,
+jamais bloquant). Branché sur : `PARTAGE_CARTE` (partage de carte),
+`INVITATION_ENVOYEE` (copie ou partage du lien de parrainage),
+`PAYWALL_VU` (affichage du paywall, avec la source du déclencheur),
+`ABONNEMENT_DEMARRE` (webhook Stripe `customer.subscription.created` —
+la vraie conversion, pas le simple clic sur "Essayer gratuitement" qui ne
+garantit pas d'aller au bout de Stripe Checkout). Jamais affiché à
+l'utilisateur comme un chiffre marketing.
+
+### 7. Paywall contextuel (`/paywall`, enrichi)
+
+Copie adaptée à la source (`?source=scan_quota|freeze|favoris`), centrée
+sur le bénéfice concret plutôt qu'une liste de limites. Comparatif
+Gratuit/Premium ligne par ligne, uniquement des fonctionnalités réelles.
+Annuel mis en avant avec le mensuel à côté, durée d'essai et renouvellement
+indiqués clairement. "Pas maintenant" toujours visible, ne bloque jamais la
+sortie. Deux déclencheurs branchés :
+- **Quota de scans atteint** : `EcranScan.tsx` redirige vers
+  `/paywall?source=scan_quota` au lieu d'un message d'erreur avec un bouton
+  "Réessayer" qui aurait échoué à l'identique.
+- **Flamme perdue qu'un gel Premium aurait sauvée** :
+  `flammeVientDetreCasseeSansGel()` (server/streak.ts) vérifie que la
+  flamme vient réellement de s'éteindre (pas une perte ancienne) ET que
+  les gels gratuits du mois étaient déjà tous utilisés au moment de la
+  perte — un bandeau honnête apparaît sur le dashboard uniquement dans ce
+  cas précis, jamais de fausse urgence.
+- **"Termine tes macros" (2e usage)** : pas câblé, cette fonctionnalité
+  n'existe pas encore (phase 2) — la structure du paywall est prête à
+  accueillir ce déclencheur dès qu'elle existera.
+
+### 8. Parrainage
+
+Code personnel à 6 caractères généré à la création du profil
+(`server/auth.ts`), lien `/inscription?ref=CODE`. Le code est posé en
+cookie côté client sur `/inscription` (`CaptureParrainageCookie.tsx`,
+7 jours, survit à la redirection OAuth Google car même origine) puis lu
+côté serveur à la création du profil pour créer la ligne `Parrainage`.
+Validation automatique après chaque repas ajouté
+(`verifierEtRecompenserParrainage`, appelé depuis `ajouterRepas`) :
+filleul ayant fini l'onboarding + ≥3 repas → récompense accordée aux deux
+côtés, une seule fois (idempotent), et seulement si le parrain n'a pas
+atteint son plafond anti-abus (12 récompenses). Anti-abus couvert :
+auto-parrainage bloqué, un seul parrain par filleul (contrainte unique en
+base), plafond par parrain — **pas couvert** : détection de comptes
+dupliqués par IP/appareil (hors scope de ce tour, à ajouter si l'abus est
+observé en pratique).
+
+**Récompense = Premium accordé en base, pas un vrai abonnement Stripe.**
+`estPremium()` ne lit que `Subscription.status`/`trialEndsAt` en base,
+donc ça débloque réellement les fonctionnalités Premium ; si
+l'utilisateur s'abonne plus tard pour de vrai, le webhook Stripe réécrit
+cette ligne sans conflit (upsert sur `profileId`). Choisi plutôt qu'un
+vrai coupon Stripe parce qu'aucune clé Stripe réelle n'est disponible
+dans ce bac à sable pour tester un appel API réel — **non testé en
+conditions Stripe réelles**. Correctif associé : `/profil` n'affiche plus
+le bouton "Gérer mon abonnement" (qui aurait planté, `stripeCustomerId`
+étant `null`) pour un profil Premium uniquement via parrainage — affiche
+à la place la date de fin, sans lien vers un portail qui n'existe pas
+pour ce profil.
+
+**Testé contre la vraie base locale** (script ad hoc, supprimé après) :
+pas de récompense avant 3 repas ; récompense accordée aux deux côtés après
+3 repas + onboarding terminé (vérifié ~31 jours d'écart) ; rappel
+idempotent (pas de double récompense) ; contrainte unique sur le filleul
+rejette bien un 2e parrain (P2002) ; suppression en cascade du filleul
+supprime bien sa ligne de parrainage.
+
+UI : écran `/parrainage` (lien, copier/partager, compteur de mois gagnés
+et d'invités en attente), entrée depuis `/profil`.
+
+### 9. Landing : section "Dans l'app"
+
+Nouvelle section entre le livre d'or et les formules
+(`DansLApp.tsx`) : la carte de partage, générée en vrai par le même code
+que l'app (pas une maquette statique), avec les vraies données du bœuf
+bourguignon. **Les autres écrans demandés (dashboard avec anneau et
+flamme, "Termine tes macros", récap hebdo) n'ont pas pu être inclus** :
+pas de session authentifiée possible dans ce bac à sable pour une capture
+honnête du dashboard, et "Termine tes macros"/récap hebdo n'existent pas
+encore (phase 2) — les montrer aurait été soit une fausse capture, soit
+une fonctionnalité annoncée avant d'exister, les deux interdits par ce
+brief. Formules (`Tarifs.tsx`) mises à jour avec les 4 fonctionnalités
+réellement livrées (scans illimités, favoris/répéter, 5 gels, carte sans
+filigrane) — plus aucune ligne qui ne soit pas vérifiée dans le code.
+
+### Vérifications effectuées
+
+- `pnpm typecheck` : propre après chaque étape.
+- `pnpm build` (build de production réel) : propre après correction de
+  deux erreurs que seul un vrai build révèle (ni `tsc` ni `eslint` ne les
+  attrapent) :
+  1. Une classe exportée depuis un fichier `"use server"` (`favoris.ts`) —
+     Next.js n'autorise que des fonctions async dans ces fichiers.
+  2. `useSearchParams()` sans limite `<Suspense>` sur `/inscription` —
+     isolé dans `CaptureParrainageCookie.tsx`, rendu dans une limite
+     `<Suspense>` dédiée.
+- Serveur de production réel (`pnpm start`) + `curl` de la page d'accueil
+  rendue : contenu réel présent (CTA, carte de partage, formules), livre
+  d'or et données de test toujours absents du HTML réellement servi, et
+  `/dev-preview-carte` renvoie bien 404 (confirmé seulement une fois le
+  vrai process de build démarré proprement — un ancien `next dev` resté
+  actif sur le port 3000 avait d'abord faussé ce test, et un `.next`
+  corrompu par l'exécution concurrente de `next dev`/`next build` a
+  nécessité un `rm -rf .next` + rebuild propre).
+- Captures Playwright de la landing complète en mode production : aucune
+  erreur console, rendu conforme sur toute la page.
+
+### À faire côté utilisateur
+
+1. **Stripe** : aucun changement de configuration nécessaire pour ce qui
+   est livré (la récompense de parrainage ne passe pas par Stripe). Si tu
+   préfères un vrai coupon Stripe plutôt qu'un Premium accordé en base,
+   dis-le — c'est un changement de mécanisme, pas juste un réglage.
+2. **`NEXT_PUBLIC_APP_URL`** doit être correcte en production (Vercel) pour
+   que les liens de parrainage générés (`/inscription?ref=CODE`) pointent
+   vers le bon domaine.
+3. **CGU** : aucune mention du parrainage aujourd'hui (vérifié, absent du
+   texte actuel) — à ajouter : la mécanique (1 mois offert par
+   parrainage validé, plafond de 12 par parrain, un seul parrain par
+   compte), et que la récompense est un accès Premium accordé
+   directement, pas un abonnement Stripe facturé puis annulé.
+4. **Mentions légales/Confidentialité** : à vérifier si la nouvelle table
+   `AnalyticsEvent` (événements de partage/invitation/paywall, liés au
+   profil) doit être mentionnée dans la politique de confidentialité —
+   elle est couverte par le droit à l'effacement RGPD existant (suppression
+   en cascade avec le profil) mais n'apparaît pas encore explicitement
+   dans le texte.
+5. **Web Share API avec fichier** n'est pas supportée sur desktop/certains
+   navigateurs — le bouton de partage replie automatiquement sur un
+   téléchargement direct de l'image, à vérifier que ce comportement te
+   convient tel quel.
+6. Comme toujours : si une vraie clé Anthropic/Stripe doit être testée en
+   conditions réelles, c'est à faire depuis un environnement avec ces
+   accès — ce bac à sable n'en a pas.

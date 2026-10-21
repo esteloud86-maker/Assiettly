@@ -60,5 +60,4 @@ export interface ProjectionObjectif {
 export const STREAK_BADGE_PALIERS = [7, 30, 100, 365] as const;
 export type StreakBadgePalier = (typeof STREAK_BADGE_PALIERS)[number];
 
-export const FREEZES_MAX_PAR_MOIS = 2;
 export const TOLERANCE_CALORIES_PCT_DEFAUT = 10;

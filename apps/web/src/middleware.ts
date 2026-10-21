@@ -14,6 +14,10 @@ const ROUTES_PUBLIQUES = [
   "/cgu",
   "/confidentialite",
   "/api/webhooks",
+  // Outil dev uniquement (aperçu de la carte de partage) — la page
+  // elle-même renvoie une 404 en production (cf. dev-preview-carte/page.tsx),
+  // inutile de la faire transiter par la case /connexion avant ça.
+  "/dev-preview-carte",
 ];
 
 export async function middleware(request: NextRequest) {

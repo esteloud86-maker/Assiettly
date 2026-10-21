@@ -1,11 +1,13 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AjusteurQuantiteRepas } from "@/components/dashboard/AjusteurQuantiteRepas";
+import { BoutonAjouterFavori } from "@/components/dashboard/BoutonAjouterFavori";
 import { BoutonPartager } from "@/components/dashboard/BoutonPartager";
 import { CartesMacroPaginees } from "@/components/dashboard/CartesMacroPaginees";
 import { MenuRepas } from "@/components/dashboard/MenuRepas";
 import { obtenirRepasParId } from "@/server/actions/meals";
 import { requireProfile } from "@/server/auth";
+import { estPremium } from "@/server/billing";
 
 const LIBELLES_TYPE: Record<string, string> = {
   PETIT_DEJ: "Petit-déjeuner",
@@ -53,6 +55,7 @@ export default async function DetailRepasPage({ params }: { params: { id: string
           </Link>
           <span className="font-titre text-lg font-semibold text-white drop-shadow">Nutrition</span>
           <div className="flex items-center gap-2">
+            <BoutonAjouterFavori mealId={meal.id} nom={nomPrincipal} premium={estPremium(profile.subscription)} />
             <BoutonPartager titre={nomPrincipal} />
             <MenuRepas mealId={meal.id} />
           </div>

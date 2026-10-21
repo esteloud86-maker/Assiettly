@@ -3,9 +3,11 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
+import { BoutonPartagerCarte } from "@/components/dashboard/scan/BoutonPartagerCarte";
 import { aujourdHuiLocal } from "@/lib/date";
 import { ajouterRepas } from "@/server/actions/meals";
 import { analyserPhoto } from "@/server/actions/scan";
+import { MESSAGE_QUOTA_SCAN_GRATUIT } from "@/server/foodAnalysis/errors";
 import type { AnalyseRepas, NiveauConfiance } from "@/server/foodAnalysis/schema";
 
 type MealType = "PETIT_DEJ" | "DEJEUNER" | "DINER" | "COLLATION";
@@ -59,7 +61,7 @@ function versItemsEditables(analyse: AnalyseRepas): ItemEditable[] {
   });
 }
 
-export function EcranScan() {
+export function EcranScan({ premium, streakActuel }: { premium: boolean; streakActuel: number }) {
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
   const [etat, setEtat] = useState<"inactif" | "analyse" | "resultat" | "erreur">("inactif");
@@ -70,6 +72,10 @@ export function EcranScan() {
   const [type, setType] = useState<MealType>(deviserTypeParHeure);
   const [enregistrement, setEnregistrement] = useState(false);
   const [modeCorrection, setModeCorrection] = useState(false);
+  // Conservée en mémoire uniquement pour la carte de partage (cf.
+  // BoutonPartagerCarte) — jamais envoyée nulle part ni stockée en base
+  // (cf. FoodAnalysisLog, qui ne garde jamais l'image elle-même).
+  const [photoDataUrl, setPhotoDataUrl] = useState<string | null>(null);
 
   function ouvrirCapture() {
     inputRef.current?.click();
@@ -96,12 +102,21 @@ export function EcranScan() {
 
       const analyse = await analyserPhoto({ imageBase64: base64, mediaType });
 
+      setPhotoDataUrl(dataUrl);
       setNomPlat(analyse.nomPlat || "Repas");
       setConfianceGlobale(analyse.confianceGlobale);
       setItems(versItemsEditables(analyse));
       setModeCorrection(analyse.confianceGlobale === "basse");
       setEtat("resultat");
     } catch (e) {
+      // Quota gratuit atteint : le paywall contextuel ("Tu as utilisé tes
+      // 3 scans du jour...") répond mieux que de laisser l'utilisateur sur
+      // un message d'erreur avec un bouton "Réessayer" qui échouerait de
+      // nouveau à l'identique (cf. brief viralité, "paywall au bon moment").
+      if (e instanceof Error && e.message === MESSAGE_QUOTA_SCAN_GRATUIT) {
+        router.push("/paywall?source=scan_quota");
+        return;
+      }
       setErreur(e instanceof Error ? e.message : "L'analyse a échoué, réessaie.");
       setEtat("erreur");
     }
@@ -259,6 +274,19 @@ export function EcranScan() {
         </div>
 
         {erreur ? <p className="text-center text-corail-600">{erreur}</p> : null}
+
+        {photoDataUrl && items.length > 0 ? (
+          <BoutonPartagerCarte
+            photoDataUrl={photoDataUrl}
+            nomPlat={nomPlat}
+            caloriesKcal={totaux.calories}
+            proteinesG={totaux.proteinesG}
+            glucidesG={totaux.glucidesG}
+            lipidesG={totaux.lipidesG}
+            streakJours={streakActuel}
+            premium={premium}
+          />
+        ) : null}
 
         <div className="flex gap-3 pb-6">
           <button
