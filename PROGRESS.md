@@ -1551,6 +1551,45 @@ réglages de domaine Vercel (www vs apex).
    accès direct à une route protégée, mot de passe oublié) pour confirmer
    que les nouveaux messages s'affichent bien.
 
+## Tarifs simplifiés, vraies photos de démo, script de génération
+
+**Tarifs** : la carte "Essai gratuit — 7 jours" (0€) retirée de la grille —
+remplacée par une ligne simple au-dessus des deux cartes restantes
+("Essai gratuit de 7 jours" / "Sans carte bancaire"). Reste deux cartes :
+Premium mensuel et Premium annuel ("Le plus choisi"). La FAQ et les CGU
+n'ont pas été touchées (la question "Que se passe-t-il après les 7 jours
+si je ne m'abonne pas ?" continue d'expliquer le mode gratuit limité).
+
+**Vraies photos pour la démo de scan** : 5 des 6 photos fournies par
+l'utilisateur, optimisées (ImageMagick : redimensionnées à 800px de large
+maximum, converties en WebP, métadonnées EXIF supprimées via `-strip`,
+toutes sous 65 Ko — bien en dessous des 150 Ko demandés) et déposées dans
+`public/landing/demo/` : `quiche-lorraine.webp`, `boeuf-bourguignon.webp`,
+`croissant.webp`, `croque-monsieur.webp`, `poulet-riz.webp`. **Photo
+manquante** : `ratatouille.webp`, pas fournie — le composant `DemoScan`
+affiche son repli emoji en attendant.
+
+**`scripts/generer-demo-scan.ts`** (nouveau, hors bundle de production) :
+envoie chaque photo présente au vrai module d'analyse
+(`analyserPhotoRepas` — même modèle, même prompt système, mêmes
+structured outputs que l'écran de scan réel), affiche un tableau des
+résultats exacts, et ne modifie jamais `demoScanPlats.ts` automatiquement
+— les chiffres doivent être recopiés à la main après vérification, pour
+qu'aucun résultat fabriqué ne puisse se retrouver sur la landing par
+accident. Vérifié mécaniquement : le script tourne, résout tous les
+imports, et s'arrête proprement avec un message clair quand la clé API
+est absente ou factice — exactement le cas dans ce sandbox (`.env` recréé
+avec des valeurs fictives pour que `pnpm build` tourne, cf. plus haut).
+
+**⚠️ Aucun résultat réel généré ici** : pas de vrai `ANTHROPIC_API_KEY`
+disponible dans cet environnement. Les 5 photos sont prêtes, le script est
+prêt et vérifié, mais `resultat` reste à `null` pour les 6 plats dans
+`demoScanPlats.ts` — la démo continue donc d'afficher "Résultat à venir."
+en attendant qu'un vrai run (avec une vraie clé, en local ou via Vercel)
+remplisse ces champs. Pour lancer ça toi-même : `cd apps/web && npx tsx
+scripts/generer-demo-scan.ts` avec un vrai `ANTHROPIC_API_KEY` dans
+`apps/web/.env`.
+
 ## Prochaines étapes suggérées
 
 1. Renseigner une vraie clé `ANTHROPIC_API_KEY` (actuellement un

@@ -1,22 +1,26 @@
 # Photos de la démo de scan (landing)
 
-Dépose ici les vraies photos de plats utilisées par la démo interactive du
-hero (`src/components/landing/DemoScan.tsx`, données dans
-`src/data/demoScanPlats.ts`). Photos maison, dans l'esprit de ce qu'un
-utilisateur prendrait réellement avec son téléphone — pas de banque d'images,
-pas de visuels d'une autre app.
+Photos de la démo interactive du hero (`src/components/landing/DemoScan.tsx`,
+données dans `src/data/demoScanPlats.ts`). Photos maison, dans l'esprit de ce
+qu'un utilisateur prendrait réellement avec son téléphone — pas de banque
+d'images, pas de visuels d'une autre app.
 
-Noms de fichiers attendus (un par plat, format jpg/png/webp) :
+Format attendu : **WebP, ≤800px de large, ≤150 Ko, sans métadonnées EXIF**
+(`convert source.jpg -resize '800x800>' -strip -quality 82 nom.webp`).
 
-- `quiche-lorraine.jpg`
-- `boeuf-bourguignon.jpg`
-- `croissant.jpg`
-- `croque-monsieur.jpg`
-- `poulet-riz.jpg`
-- `ratatouille.jpg`
+Noms de fichiers attendus (un par plat) :
 
-Une fois une photo déposée, fais tourner un vrai scan dessus (écran
-`/scanner` de l'app) et recopie le résultat obtenu dans le champ `resultat`
-de l'entrée correspondante dans `src/data/demoScanPlats.ts`. Tant que
-`resultat` reste à `null`, la démo affiche un état "résultat à venir" au lieu
-d'inventer un chiffre.
+- `quiche-lorraine.webp` ✅
+- `boeuf-bourguignon.webp` ✅
+- `croissant.webp` ✅
+- `croque-monsieur.webp` ✅
+- `poulet-riz.webp` ✅
+- `ratatouille.webp` — **manquante**, à fournir
+
+Une fois une photo déposée (ou remplacée), lance
+`npx tsx scripts/generer-demo-scan.ts` (depuis `apps/web`, avec un vrai
+`ANTHROPIC_API_KEY` dans `.env`) : il envoie chaque photo présente au module
+d'analyse réel et imprime un tableau des résultats exacts. Recopie-les dans
+le champ `resultat` de l'entrée correspondante dans
+`src/data/demoScanPlats.ts`. Tant que `resultat` reste à `null`, la démo
+affiche "Résultat à venir" au lieu d'inventer un chiffre.

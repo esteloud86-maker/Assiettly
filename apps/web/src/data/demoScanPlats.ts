@@ -11,8 +11,10 @@
  * `analyserPhotoRepas` sur cette photo.
  *
  * Pour brancher une vraie photo :
- * 1. Dépose le fichier dans apps/web/public/landing/demo/<id>.jpg
- * 2. Fais tourner le scan réel sur cette photo (ex: via l'écran /scanner)
+ * 1. Dépose le fichier (format WebP, ≤800px de large, ≤150 Ko) dans
+ *    apps/web/public/landing/demo/<id>.webp
+ * 2. Lance `npx tsx scripts/generer-demo-scan.ts` (depuis apps/web) — ce
+ *    script envoie la photo au module d'analyse réel et imprime le résultat
  * 3. Recopie le résultat obtenu dans le champ `resultat` ci-dessous
  */
 export interface ResultatDemoScan {
@@ -33,10 +35,10 @@ export interface PlatDemo {
 }
 
 export const PLATS_DEMO: PlatDemo[] = [
-  { id: "quiche-lorraine", nom: "Quiche lorraine", emoji: "🥧", image: "/landing/demo/quiche-lorraine.jpg", resultat: null },
-  { id: "boeuf-bourguignon", nom: "Bœuf bourguignon", emoji: "🍲", image: "/landing/demo/boeuf-bourguignon.jpg", resultat: null },
-  { id: "croissant", nom: "Croissant", emoji: "🥐", image: "/landing/demo/croissant.jpg", resultat: null },
-  { id: "croque-monsieur", nom: "Croque-monsieur", emoji: "🥪", image: "/landing/demo/croque-monsieur.jpg", resultat: null },
-  { id: "poulet-riz", nom: "Poulet-riz (salle de sport)", emoji: "🍗", image: "/landing/demo/poulet-riz.jpg", resultat: null },
-  { id: "ratatouille", nom: "Ratatouille", emoji: "🍆", image: "/landing/demo/ratatouille.jpg", resultat: null },
+  { id: "quiche-lorraine", nom: "Quiche lorraine", emoji: "🥧", image: "/landing/demo/quiche-lorraine.webp", resultat: null },
+  { id: "boeuf-bourguignon", nom: "Bœuf bourguignon", emoji: "🍲", image: "/landing/demo/boeuf-bourguignon.webp", resultat: null },
+  { id: "croissant", nom: "Croissant", emoji: "🥐", image: "/landing/demo/croissant.webp", resultat: null },
+  { id: "croque-monsieur", nom: "Croque-monsieur", emoji: "🥪", image: "/landing/demo/croque-monsieur.webp", resultat: null },
+  { id: "poulet-riz", nom: "Poulet-riz (salle de sport)", emoji: "🍗", image: "/landing/demo/poulet-riz.webp", resultat: null },
+  { id: "ratatouille", nom: "Ratatouille", emoji: "🍆", image: "/landing/demo/ratatouille.webp", resultat: null },
 ];

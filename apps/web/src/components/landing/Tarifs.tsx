@@ -1,36 +1,18 @@
 import Link from "next/link";
-import { SCANS_GRATUITS_PAR_JOUR, TARIFS } from "@/lib/pricing";
+import { TARIFS } from "@/lib/pricing";
 
 const AVANTAGES_PREMIUM = ["Scans de repas par photo illimités", "Badges exclusifs et défis entre amis (bientôt)"];
 
 export function Tarifs() {
   return (
-    <section id="tarifs" className="mx-auto max-w-5xl px-4 py-16 sm:px-6">
+    <section id="tarifs" className="mx-auto max-w-3xl px-4 py-16 sm:px-6">
       <h2 className="text-center font-titre text-3xl font-bold text-charbon-800">Un tarif simple, sans piège</h2>
-      <p className="mt-2 text-center text-charbon-400">
-        {TARIFS.essaiJours} jours d&rsquo;essai complet, sans carte bancaire.
+      <p className="mt-3 text-center font-titre text-lg font-semibold text-charbon-800">
+        Essai gratuit de {TARIFS.essaiJours} jours
       </p>
+      <p className="text-center text-charbon-400">Sans carte bancaire.</p>
 
-      <div className="mt-10 grid gap-5 sm:grid-cols-3">
-        <div className="flex flex-col rounded-3xl bg-creme-50 p-6 shadow-sm">
-          <p className="font-titre text-lg font-semibold text-charbon-800">Essai gratuit — {TARIFS.essaiJours} jours</p>
-          <p className="mt-1 font-titre text-2xl font-bold text-charbon-800">0€</p>
-          <p className="mt-3 text-sm text-charbon-600">
-            Accès complet pendant {TARIFS.essaiJours} jours. Pas de carte bancaire à l&rsquo;inscription.
-          </p>
-          <p className="mt-3 text-xs text-charbon-400">
-            Après l&rsquo;essai, si tu ne t&rsquo;abonnes pas, l&rsquo;app reste utilisable en mode limité (
-            {SCANS_GRATUITS_PAR_JOUR} scans par jour, journal et flamme illimités) — ta flamme ne s&rsquo;éteint
-            pas pour autant.
-          </p>
-          <Link
-            href="/inscription"
-            className="mt-auto block rounded-2xl border border-creme-200 bg-white py-3 text-center font-titre font-semibold text-charbon-800 hover:bg-creme-200"
-          >
-            Essayer gratuitement
-          </Link>
-        </div>
-
+      <div className="mt-10 grid gap-5 sm:grid-cols-2">
         <div className="flex flex-col rounded-3xl bg-creme-50 p-6 shadow-sm">
           <p className="font-titre text-lg font-semibold text-charbon-800">Premium mensuel</p>
           <p className="mt-1 font-titre text-2xl font-bold text-charbon-800">
