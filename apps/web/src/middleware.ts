@@ -49,8 +49,16 @@ export async function middleware(request: NextRequest) {
   );
 
   if (!user && !estRoutePublique) {
+    // Un cookie de session existait mais `getUser()` n'a pas pu le valider
+    // (ex: refresh token invalidé par la rotation de sécurité de Supabase
+    // après des requêtes concurrentes — déjà observé en production, cf.
+    // PROGRESS.md) : c'est une vraie déconnexion, pas une première visite.
+    // Sans cette distinction, l'utilisateur atterrissait sur /connexion
+    // sans aucune explication, ce qui ressemble à un bug.
+    const avaitUneSession = request.cookies.getAll().some((c) => /^sb-.*-auth-token/.test(c.name));
     const url = request.nextUrl.clone();
     url.pathname = "/connexion";
+    if (avaitUneSession) url.searchParams.set("erreur", "session_expiree");
     return NextResponse.redirect(url);
   }
 

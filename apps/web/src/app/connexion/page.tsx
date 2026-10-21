@@ -6,11 +6,17 @@ import { Suspense, useState } from "react";
 import { BoutonGoogle } from "@/components/auth/BoutonGoogle";
 import { ChampMotDePasse } from "@/components/auth/ChampMotDePasse";
 import { createClient } from "@/lib/supabase/client";
+import { messageErreurAuth } from "@/lib/messagesErreurAuth";
 
 const MESSAGES_ERREUR: Record<string, string> = {
   auth: "Ce lien n'est plus valide ou a expiré. Réessaie.",
   oauth_annule: "Connexion annulée.",
   oauth_echec: "La connexion avec Google a échoué. Réessaie, ou utilise ton e-mail ci-dessous.",
+  // Posé par le middleware quand un cookie de session existait mais n'a
+  // pas pu être rafraîchi (ex: refresh token invalidé par Supabase après
+  // une rotation) — sans ce message, l'utilisateur atterrissait sur
+  // /connexion sans comprendre pourquoi il avait été déconnecté.
+  session_expiree: "Ta session a expiré. Reconnecte-toi pour continuer.",
 };
 
 export default function ConnexionPage() {
@@ -34,21 +40,41 @@ function ConnexionForm() {
     MESSAGES_ERREUR[searchParams.get("erreur") ?? ""] ?? null,
   );
   const [loading, setLoading] = useState(false);
+  // Affiché uniquement sur l'erreur "email_not_confirmed" — permet de
+  // renvoyer l'e-mail de confirmation sans quitter l'écran de connexion.
+  const [emailNonConfirme, setEmailNonConfirme] = useState(false);
+  const [renvoiEnCours, setRenvoiEnCours] = useState(false);
+  const [renvoye, setRenvoye] = useState(false);
 
   async function seConnecter(e: React.FormEvent) {
     e.preventDefault();
     setErreur(null);
+    setEmailNonConfirme(false);
+    setRenvoye(false);
     setLoading(true);
     const supabase = createClient();
     const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
     setLoading(false);
     if (error) {
-      setErreur(error.message);
+      setErreur(messageErreurAuth(error));
+      setEmailNonConfirme(error.code === "email_not_confirmed");
       return;
     }
     // (app)/layout.tsx redirige lui-même vers /onboarding si le questionnaire n'est pas terminé.
     router.push("/accueil");
     router.refresh();
+  }
+
+  async function renvoyerEmail() {
+    setRenvoiEnCours(true);
+    const supabase = createClient();
+    const { error } = await supabase.auth.resend({
+      type: "signup",
+      email: email.trim(),
+      options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
+    });
+    setRenvoiEnCours(false);
+    if (!error) setRenvoye(true);
   }
 
   return (
@@ -93,6 +119,16 @@ function ConnexionForm() {
           </div>
 
           {erreur ? <p className="text-center text-corail-600">{erreur}</p> : null}
+          {emailNonConfirme ? (
+            <button
+              type="button"
+              onClick={renvoyerEmail}
+              disabled={renvoiEnCours || renvoye}
+              className="w-full rounded-xl border border-creme-200 bg-creme-50 py-2.5 text-sm font-semibold text-charbon-800 disabled:opacity-50"
+            >
+              {renvoye ? "E-mail renvoyé ✓" : renvoiEnCours ? "Envoi..." : "Renvoyer l'e-mail de confirmation"}
+            </button>
+          ) : null}
 
           <button
             type="submit"

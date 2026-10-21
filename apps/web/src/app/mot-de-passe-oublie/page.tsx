@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { messageErreurAuth } from "@/lib/messagesErreurAuth";
 
 export default function MotDePasseOubliePage() {
   const [email, setEmail] = useState("");
@@ -20,7 +21,7 @@ export default function MotDePasseOubliePage() {
     });
     setLoading(false);
     if (error) {
-      setErreur(error.message);
+      setErreur(messageErreurAuth(error));
       return;
     }
     setEnvoye(true);

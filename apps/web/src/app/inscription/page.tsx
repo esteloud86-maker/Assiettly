@@ -7,6 +7,7 @@ import { BoutonGoogle } from "@/components/auth/BoutonGoogle";
 import { ChampMotDePasse } from "@/components/auth/ChampMotDePasse";
 import { EcranVerificationEmail } from "@/components/auth/EcranVerificationEmail";
 import { createClient } from "@/lib/supabase/client";
+import { messageErreurAuth } from "@/lib/messagesErreurAuth";
 
 export default function InscriptionPage() {
   const router = useRouter();
@@ -36,7 +37,7 @@ export default function InscriptionPage() {
     });
     setLoading(false);
     if (error) {
-      setErreur(error.message);
+      setErreur(messageErreurAuth(error));
       return;
     }
     if (data.session) {

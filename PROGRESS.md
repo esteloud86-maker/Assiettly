@@ -1387,6 +1387,170 @@ sandbox** :
 5. Vérifier sur un vrai iPhone avec l'app installée (standalone) — limite
    connue ci-dessus, à confirmer en situation réelle.
 
+## Diagnostic "la connexion déconne"
+
+Reproduit avec des preuves (logs Supabase réels, pas une supposition)
+avant de toucher au code, comme demandé. Projet `assiettly`
+(`vjfiobelylqnmqlywzcu`, eu-west-3) — **ACTIVE_HEALTHY**, pas en pause.
+Schéma à jour : les 5 migrations sont bien appliquées en base, `list_tables`
+confirme que chaque table correspond exactement au schéma Prisma (colonnes,
+enums `Sexe` avec `AUTRE` inclus, `food_analysis_logs` présente).
+
+### Preuves collectées (logs `auth_logs`/`auth_audit_logs`, aujourd'hui)
+
+Un seul utilisateur réel dans `auth.users` (toi, en test). Reconstitution
+précise de la session de test à partir des logs GoTrue :
+
+1. 3 tentatives d'inscription avec le même e-mail → **422
+   `user_already_exists`** (un compte existait déjà d'un essai précédent)
+2. 5 tentatives de connexion → **400 `invalid_credentials`** à chaque fois
+   ("Invalid login credentials", affiché tel quel, en anglais, à
+   l'utilisateur — **cause réelle n°1**)
+3. Suppression manuelle des 2 comptes de test bloqués (dashboard)
+4. Nouvelle inscription → succès, **connecté immédiatement sans
+   confirmation d'e-mail** (`immediate_login_after_signup: true` dans le
+   log — la confirmation d'e-mail est désactivée sur ce projet)
+5. **`refresh_token_not_found` (400) sur `POST /token`, juste après** —
+   **cause réelle n°2**, un vrai échec constaté en production
+6. 9 minutes de silence dans les logs (cohérent avec quelqu'un resté
+   bloqué)
+7. Connexion Google à la place : `/authorize` → `/callback` →
+   `identity_linked` (compte Google lié automatiquement au compte e-mail
+   existant, exactement le comportement documenté) → connecté
+
+**Parcours confirmés fonctionnels par ces logs** : inscription, connexion
+par mot de passe (une fois le bon), connexion Google, liaison automatique
+Google ↔ compte e-mail existant. **Parcours non déclenché** : confirmation
+d'e-mail (désactivée sur ce projet actuellement — ni testé ni cassé, juste
+jamais atteint).
+
+### Cause réelle n°1 — messages d'erreur bruts, en anglais
+
+`connexion/page.tsx`, `inscription/page.tsx`, `mot-de-passe-oublie/page.tsx`,
+`reinitialiser-mot-de-passe/page.tsx` et `EcranVerificationEmail.tsx`
+faisaient tous `setErreur(error.message)` — le message brut renvoyé par
+l'API Supabase ("Invalid login credentials", etc.), jamais traduit.
+**Corrigé** : nouveau `lib/messagesErreurAuth.ts`, un mappeur central
+`error.code → message français clair`, utilisé par les 5 écrans. Codes
+gérés : `invalid_credentials`, `email_not_confirmed` (+ bouton "Renvoyer
+l'e-mail de confirmation" directement sur `/connexion`),
+`user_already_exists`/`email_exists`, `weak_password`, `same_password`,
+`over_request_rate_limit`, `over_email_send_rate_limit`, `user_banned`,
+`session_expired`/`refresh_token_not_found`/`refresh_token_already_used`.
+Choix délibéré : "E-mail ou mot de passe incorrect" reste le même message
+que le compte n'existe pas ou que le mot de passe soit faux — Supabase
+masque déjà cette distinction côté serveur pour empêcher l'énumération
+d'adresses e-mail valides ; les séparer serait une régression de
+sécurité, pas une amélioration.
+
+### Cause réelle n°2 — déconnexion silencieuse sur `refresh_token_not_found`
+
+Le `refresh_token_not_found` constaté dans les logs vient très probablement
+de requêtes concurrentes (Next.js/Vercel envoie souvent plusieurs requêtes
+en parallèle au chargement d'une page, chacune repassant par le
+middleware) qui tentent de rafraîchir le même refresh token — Supabase
+fait tourner (rotate) les refresh tokens par sécurité, donc la deuxième
+requête arrivant juste après la première échoue avec ce code précis. Le
+code du middleware suit déjà exactement le modèle documenté par Supabase
+pour Next.js — ce n'est pas une erreur de configuration. Mais quand ça
+arrive, l'utilisateur était renvoyé vers `/connexion` **sans aucune
+explication**, ce qui ressemble exactement à "ça déconne" alors qu'il
+s'agit d'une vraie déconnexion de session.
+
+**Corrigé** : `middleware.ts` distingue maintenant "jamais connecté" de
+"session invalidée" — si un cookie `sb-*-auth-token` était présent mais que
+`getUser()` ne retourne aucun utilisateur, la redirection vers
+`/connexion` porte `?erreur=session_expiree`, affichant "Ta session a
+expiré. Reconnecte-toi pour continuer." au lieu d'un silence total.
+Vérifié visuellement (capture d'écran).
+
+### Pistes vérifiées et écartées (avec preuve)
+
+- **Projet en pause** : non, `ACTIVE_HEALTHY` (`get_project`).
+- **Boucle `/connexion` ↔ dashboard, ou mauvaise redirection
+  onboarding/dashboard** : non trouvée dans le code — `/onboarding` est
+  hors du groupe de routes `(app)` et n'est donc jamais concerné par la
+  redirection `onboardingTermine` de `(app)/layout.tsx`, pas de risque de
+  boucle entre les deux.
+- **`getSession()` utilisé côté serveur au lieu de `getUser()`** : vérifié
+  par recherche dans tout `src/` — le seul usage de `getSession()` est
+  côté client dans `EcranVerificationEmail.tsx`, pour un poll léger ("une
+  session est-elle apparue dans un autre onglet ?"), pas une décision
+  d'autorisation. Le middleware et `server/auth.ts` utilisent bien
+  `getUser()` (vérifié côté serveur auprès de Supabase, pas une simple
+  lecture de cookie).
+- **Redirection `www` ↔ sans `www` cassant les cookies** : aucun
+  redirect configuré dans `next.config.js`/`vercel.json` côté app — si ça
+  arrive, ce serait au niveau des réglages de domaine Vercel (hors de ce
+  que je peux lire depuis cet environnement). À vérifier dans le dashboard
+  Vercel (cf. checklist).
+- **Limites de débit atteintes pendant les tests** : non — tous les
+  échecs observés étaient des `400`/`422` applicatifs, jamais un `429`.
+- **Google OAuth mal configuré** : non — le flux complet apparaît dans les
+  logs comme réussi (`/authorize` → `/callback` → `identity_linked`
+  → connecté).
+
+### Piste réelle, non corrigée ici — décision à prendre
+
+- **RLS activé sans aucune politique sur les 11 tables `public.*`**
+  (confirmé par `get_advisors`). **Ça n'explique pas le bug observé** :
+  l'app se connecte à Postgres directement via Prisma avec le rôle
+  `postgres` (pooler Supabase), qui contourne RLS — toutes les requêtes
+  applicatives (Server Actions, Server Components) passent par ce chemin,
+  jamais par l'API PostgREST soumise à RLS. Mais c'est un vrai filet de
+  sécurité manquant si un jour du code appelle `supabase.from(...)`
+  directement (actuellement aucun endroit ne le fait, vérifié). Pas
+  touché ici — brief explicite de ne pas modifier RLS sans accord
+  préalable, et ça demande de concevoir une politique par table, pas une
+  correction de bug ponctuelle.
+
+### Vérifié / pas vérifié
+
+✅ **Vérifié avec preuve directe** : état du projet, schéma, logs d'auth
+réels de production (inscription, échecs de connexion, suppression de
+comptes, confirmation désactivée, `refresh_token_not_found`, flux Google
+complet), absence de `getSession()` côté serveur, absence de redirect
+www/apex côté app, build + typecheck propres après chaque correctif,
+rendu visuel du nouveau message "session expirée".
+
+❌ **Pas vérifiable depuis ce sandbox** : rejouer concrètement un clic par
+clic en local (pas d'accès à un vrai Supabase local, `.env` recréé avec
+des valeurs factices uniquement pour que `pnpm build` tourne) ; confirmer
+en production que les nouveaux messages s'affichent bien après déploiement
+(nécessite un vrai déploiement Vercel, hors de portée d'ici) ; les
+réglages de domaine Vercel (www vs apex).
+
+### Checklist — ce qu'il reste à faire à la main
+
+1. **Décider si la confirmation d'e-mail doit être réactivée.** Elle est
+   actuellement désactivée sur le projet (observé dans les logs). Si tu la
+   veux active : Supabase Dashboard → Authentication → Providers → Email →
+   active "Confirm email". L'écran "Vérifie ta boîte mail" déjà construit
+   s'activera alors automatiquement.
+2. **Vérifier les réglages de domaine Vercel** (www vs apex, lequel
+   redirige vers lequel) et s'assurer que la Site URL Supabase correspond
+   exactement au domaine réellement utilisé par les visiteurs.
+3. **E-mail transactionnel** : l'envoi par défaut de Supabase est limité
+   en volume (quelques e-mails/heure) et pas toujours fiable pour de la
+   production. Resend est déjà intégré au projet pour les rappels de
+   flamme (`RESEND_API_KEY` déjà en place) — si la confirmation d'e-mail
+   est réactivée (point 1), configurer un SMTP personnalisé dans Supabase
+   Dashboard → Project Settings → Auth → SMTP Settings avec les
+   identifiants SMTP de Resend (Resend Dashboard → Domains → vérifier le
+   domaine `assiettly.fr` si pas déjà fait, puis API Keys → créer une clé,
+   utilisable comme mot de passe SMTP avec `resend` comme nom
+   d'utilisateur, hôte `smtp.resend.com`, port 465 ou 587) — dis-moi si tu
+   veux que je prépare ça plus précisément une fois que tu as confirmé le
+   point 1.
+4. **Décider si une politique RLS doit être ajoutée** sur les tables
+   `public.*` (actuellement RLS activé sans aucune politique — sans
+   conséquence tant que seul Prisma y accède, mais un vrai filet de
+   sécurité manquant pour l'avenir). Dis-moi si tu veux que je les écrive.
+5. Déployer ces correctifs en production et rejouer les parcours listés
+   en introduction (inscription, connexion, déconnexion, rechargement,
+   accès direct à une route protégée, mot de passe oublié) pour confirmer
+   que les nouveaux messages s'affichent bien.
+
 ## Prochaines étapes suggérées
 
 1. Renseigner une vraie clé `ANTHROPIC_API_KEY` (actuellement un

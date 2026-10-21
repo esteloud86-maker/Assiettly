@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { messageErreurAuth } from "@/lib/messagesErreurAuth";
 
 export default function ReinitialiserMotDePassePage() {
   const router = useRouter();
@@ -23,7 +24,7 @@ export default function ReinitialiserMotDePassePage() {
     const { error } = await supabase.auth.updateUser({ password: motDePasse });
     setLoading(false);
     if (error) {
-      setErreur(error.message);
+      setErreur(messageErreurAuth(error));
       return;
     }
     setSucces(true);

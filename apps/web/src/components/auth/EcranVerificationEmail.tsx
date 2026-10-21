@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { IllustrationEnveloppe } from "@/components/auth/IllustrationEnveloppe";
+import { messageErreurAuth } from "@/lib/messagesErreurAuth";
 import { createClient } from "@/lib/supabase/client";
 
 const DUREE_COOLDOWN_S = 45;
@@ -77,7 +78,7 @@ export function EcranVerificationEmail({ email }: { email: string }) {
     });
     setRenvoiEnCours(false);
     if (error) {
-      setErreur(error.message);
+      setErreur(messageErreurAuth(error));
       return;
     }
     setRenvoye(true);
