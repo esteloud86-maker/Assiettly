@@ -3,8 +3,15 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
+import { BoutonGoogle } from "@/components/auth/BoutonGoogle";
 import { ChampMotDePasse } from "@/components/auth/ChampMotDePasse";
 import { createClient } from "@/lib/supabase/client";
+
+const MESSAGES_ERREUR: Record<string, string> = {
+  auth: "Ce lien n'est plus valide ou a expiré. Réessaie.",
+  oauth_annule: "Connexion annulée.",
+  oauth_echec: "La connexion avec Google a échoué. Réessaie, ou utilise ton e-mail ci-dessous.",
+};
 
 export default function ConnexionPage() {
   return (
@@ -19,12 +26,12 @@ function ConnexionForm() {
   const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  // /auth/callback redirige ici avec ?erreur=auth quand un lien (confirmation
-  // d'e-mail ou réinitialisation de mot de passe) est invalide ou expiré —
-  // sans ça, l'utilisateur atterrissait sur /connexion sans aucune
-  // explication (échec silencieux).
+  // /auth/callback redirige ici avec ?erreur=... quand un lien (confirmation
+  // d'e-mail, réinitialisation de mot de passe, ou connexion Google) est
+  // invalide, expiré ou annulé — sans ça, l'utilisateur atterrissait sur
+  // /connexion sans aucune explication (échec silencieux).
   const [erreur, setErreur] = useState<string | null>(
-    searchParams.get("erreur") === "auth" ? "Ce lien n'est plus valide ou a expiré. Réessaie." : null,
+    MESSAGES_ERREUR[searchParams.get("erreur") ?? ""] ?? null,
   );
   const [loading, setLoading] = useState(false);
 
@@ -52,6 +59,15 @@ function ConnexionForm() {
             Assiettly
           </Link>
           <p className="mt-2 text-charbon-400">Content de te revoir 👋</p>
+        </div>
+
+        <div className="space-y-4">
+          <BoutonGoogle />
+          <div className="flex items-center gap-3 text-xs text-charbon-400">
+            <span className="h-px flex-1 bg-creme-200" aria-hidden="true" />
+            ou avec ton e-mail
+            <span className="h-px flex-1 bg-creme-200" aria-hidden="true" />
+          </div>
         </div>
 
         <form onSubmit={seConnecter} className="space-y-4">

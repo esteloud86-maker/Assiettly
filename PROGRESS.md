@@ -1252,6 +1252,141 @@ démarrage) — `.env` recréé localement avec des valeurs factices
 (gitignored, jamais commité) uniquement pour que `pnpm build` tourne ;
 aucune valeur réelle n'a été utilisée ni modifiée.
 
+## Connexion Google réactivée
+
+Le bouton "Continuer avec Google" était désactivé depuis la correction de
+l'écran de connexion (bug en cours d'investigation à l'époque). Réactivé
+après audit + correction du vrai bug trouvé.
+
+**Ce qui est géré entièrement côté app (rien à configurer en plus)** :
+- Le Client ID/Secret Google ne sont utilisés nulle part dans le code de
+  l'app — c'est volontaire : `supabase.auth.signInWithOAuth()` fait tout
+  l'échange OAuth via les endpoints GoTrue de Supabase. Ils vont
+  uniquement dans Supabase Dashboard → Authentication → Providers →
+  Google, jamais dans `.env`/Vercel.
+- **Compte existant (inscrit par e-mail/mot de passe) + connexion Google
+  avec le même e-mail** : vérifié dans la documentation Supabase
+  (`auth-identity-linking`) — le lien est **automatique par défaut**, sans
+  réglage à activer, tant que l'e-mail du compte existant est déjà
+  confirmé (ce qui est toujours le cas ici, l'inscription par e-mail exige
+  la confirmation). Aucun code de fusion/conflit nécessaire. Cas limite
+  non traité spécifiquement : un compte e-mail jamais confirmé + tentative
+  Google ensuite — Supabase refuse alors la liaison automatique (protection
+  anti-prise de contrôle de compte) et crée un compte séparé ; probabilité
+  très faible, pas de traitement dédié.
+- **Écran "Vérifie ta boîte mail" jamais affiché pour Google** : structurel,
+  pas besoin de code — `signInWithOAuth` aboutit toujours à une session
+  immédiate (e-mail déjà vérifié par Google), cet écran n'est atteint que
+  par le chemin `signUp()` e-mail/mot de passe sans session immédiate.
+
+**Vrai bug trouvé et corrigé — annulation sur l'écran Google** :
+confirmé dans la documentation Supabase (`redirect-urls`, section "Error
+handling") que les erreurs OAuth (dont l'annulation) reviennent en
+**fragment d'URL** (`#error=access_denied...`), jamais en paramètre de
+requête classique — un fragment n'est jamais transmis au serveur par le
+navigateur. `/auth/callback/route.ts` (une route serveur) ne pouvait donc
+pas le voir, et affichait par défaut "Ce lien n'est plus valide ou a
+expiré" à quelqu'un qui avait simplement cliqué Annuler. Corrigé : en
+dernier recours (ni `code`, ni `token_hash`, ni `error` en paramètre de
+requête), la route renvoie une page HTML minimale avec un script inline
+qui lit `location.hash` côté client et redirige aussitôt vers
+`/connexion?erreur=oauth_annule` (ou `oauth_echec` si ce n'est pas une
+annulation). Vérifié par simulation Playwright (navigation directe vers
+`/auth/callback#error=access_denied...`) : redirige bien vers
+`/connexion?erreur=oauth_annule`, qui affiche "Connexion annulée."
+
+**Interface** :
+- `BoutonGoogle.tsx` (nouveau) : logo "G" officiel non modifié, libellé
+  "Continuer avec Google", zone de tap ≥44px (vérifié 50px en rendu réel),
+  état "Redirection..." pendant l'appel, bouton désactivé pendant ce
+  temps. Intégré au-dessus du formulaire sur `/connexion` et
+  `/inscription`, séparateur "ou avec ton e-mail".
+- `BoutonsOAuth.tsx` : ne contient plus que le bouton Apple, toujours
+  isolé (non importé nulle part) — pas réactivé, comme demandé. Le logo
+  Google et sa logique ont été déplacés dans `BoutonGoogle.tsx`.
+- **Navigateurs intégrés (Instagram/TikTok)** : `estNavigateurInApp()`
+  (nouveau, `lib/detectionPlateforme.ts`) détecte ces webviews par
+  user-agent (Facebook/Messenger inclus en bonus, même symptôme). Le
+  bouton Google est alors remplacé par un message invitant à ouvrir le
+  lien dans Safari/Chrome, formulaire e-mail toujours utilisable en
+  dessous. Vérifié par Playwright avec de vrais user-agents Instagram et
+  TikTok : le bouton Google disparaît bien, le message et le formulaire
+  e-mail restent visibles.
+- **Prénom prérempli** : `getCurrentProfile()` récupère `given_name` (ou
+  `full_name`/`name` à défaut) depuis `user_metadata` à la toute première
+  création du profil — uniquement à la création, jamais écrasé ensuite.
+  Aucune migration nécessaire (`nom` était déjà une colonne nullable).
+  Aucun avatar stocké (pas de colonne prévue, non nécessaire selon le
+  brief).
+
+**PWA / iOS standalone — limite connue, non résolue** : impossible à
+tester sur un vrai appareil depuis cet environnement. D'après le
+comportement documenté de WebKit/iOS, la redirection plein-écran vers
+Google puis retour fonctionne généralement (cookies partagés, même
+origine, la session est bien créée) mais iOS peut faire sortir
+momentanément l'utilisateur du mode standalone vers Safari pendant
+l'aller-retour, avant de revenir dans l'app installée au prochain lancement
+depuis l'écran d'accueil — pas cassé, mais pas parfaitement fluide. Rien
+en JavaScript côté app ne peut corriger ce comportement de la plateforme ;
+pas de solution de contournement proposée ici faute de pouvoir la
+vérifier sur un vrai appareil.
+
+**Ce qui a été testé, et ce qui ne pouvait pas l'être depuis ce
+sandbox** :
+- ✅ Testé : rendu visuel des deux écrans (mobile), hauteur réelle du
+  bouton (50px), détection navigateur in-app (Instagram + TikTok, vrais
+  user-agents), les 3 messages d'erreur (`oauth_annule`, `oauth_echec`,
+  `auth`), le mécanisme exact de lecture du fragment d'URL en cas
+  d'annulation (simulé directement), `pnpm typecheck` et `pnpm build`
+  propres après chaque étape.
+- ❌ Pas testé (nécessite un vrai écran de consentement Google + un vrai
+  projet Supabase avec le provider configuré, aucun des deux disponible
+  ici) : un vrai nouveau compte via Google → onboarding ; un vrai retour
+  d'un compte Google déjà inscrit → dashboard ; la fusion automatique
+  réelle avec un compte e-mail/mot de passe existant (documentée, non
+  observée en pratique) ; le comportement réel en production (domaine
+  réel, Site URL réel) ; le flux complet sur un vrai appareil iOS en mode
+  standalone installé.
+
+### Configuration finale — URLs à autoriser
+
+**Supabase Dashboard → Authentication → URL Configuration** :
+- Site URL : domaine canonique de production (à confirmer : `www` ou
+  apex)
+- Redirect URLs : `https://www.assiettly.fr/**`, `https://assiettly.fr/**`,
+  `http://localhost:3000/**`
+- Optionnel, seulement si la connexion Google doit aussi marcher sur les
+  déploiements de prévisualisation Vercel : `https://*-<slug-équipe-ou-
+  compte-vercel>.vercel.app/**` (pattern confirmé dans la documentation
+  Supabase) — sinon les previews fonctionnent pour tout sauf Google
+  (connexion e-mail intacte).
+
+**Supabase Dashboard → Authentication → Providers → Google** :
+- Activer le provider, coller le Client ID et le Client Secret (uniquement
+  ici, jamais dans le code ni dans le chat).
+
+**Google Cloud Console** (déjà fait selon l'utilisateur) :
+- Origines JavaScript autorisées : `https://www.assiettly.fr`,
+  `https://assiettly.fr`, `http://localhost:3000`
+- URI de redirection autorisé : `https://<ref-projet>.supabase.co/auth/v1/callback`
+  (le callback Supabase, pas une route de l'app)
+
+### Checklist — ce qu'il reste à faire à la main
+
+1. Renseigner le Client ID + Client Secret Google dans Supabase
+   (Authentication → Providers → Google) et activer le provider.
+2. Vérifier/compléter la Site URL et les Redirect URLs dans Supabase
+   (voir ci-dessus) — en particulier confirmer `www` vs apex pour la Site
+   URL.
+3. Si besoin de Google sur les previews Vercel : donner le slug
+   d'équipe/compte Vercel pour construire le pattern exact, ou l'ajouter
+   soi-même.
+4. Tester le parcours réel une fois ces deux dashboards configurés :
+   nouveau compte Google, retour d'un compte existant, annulation,
+   e-mail déjà utilisé avec mot de passe — en local puis en production.
+5. Vérifier sur un vrai iPhone avec l'app installée (standalone) — limite
+   connue ci-dessus, à confirmer en situation réelle.
+
 ## Prochaines étapes suggérées
 
 1. Renseigner une vraie clé `ANTHROPIC_API_KEY` (actuellement un

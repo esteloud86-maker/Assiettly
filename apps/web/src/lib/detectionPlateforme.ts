@@ -19,6 +19,19 @@ export function detecterPlateforme(): Plateforme {
   return "desktop";
 }
 
+/**
+ * Vrai si la page tourne dans le navigateur intégré d'une appli tierce
+ * (Instagram, TikTok — la source de trafic principale d'Assiettly ; Facebook/
+ * Messenger inclus en bonus car même symptôme et détection quasi gratuite).
+ * Google bloque explicitement OAuth dans ces webviews (erreur
+ * `disallowed_useragent`) — impossible à contourner, il faut ouvrir le lien
+ * dans un vrai navigateur.
+ */
+export function estNavigateurInApp(): boolean {
+  if (typeof navigator === "undefined") return false;
+  return /Instagram|TikTok|BytedanceWebview|FBAN|FBAV|FB_IAB/i.test(navigator.userAgent);
+}
+
 /** Vrai si l'app tourne déjà en mode installé (standalone), sur iOS comme sur Android/Chrome. */
 export function estDejaInstallee(): boolean {
   if (typeof window === "undefined") return false;

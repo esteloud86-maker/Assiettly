@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { BoutonGoogle } from "@/components/auth/BoutonGoogle";
 import { ChampMotDePasse } from "@/components/auth/ChampMotDePasse";
 import { EcranVerificationEmail } from "@/components/auth/EcranVerificationEmail";
 import { createClient } from "@/lib/supabase/client";
@@ -58,6 +59,15 @@ export default function InscriptionPage() {
             Assiettly
           </Link>
           <p className="mt-2 text-charbon-400">Crée ton compte en moins de 2 minutes.</p>
+        </div>
+
+        <div className="space-y-4">
+          <BoutonGoogle />
+          <div className="flex items-center gap-3 text-xs text-charbon-400">
+            <span className="h-px flex-1 bg-creme-200" aria-hidden="true" />
+            ou avec ton e-mail
+            <span className="h-px flex-1 bg-creme-200" aria-hidden="true" />
+          </div>
         </div>
 
         <form onSubmit={sInscrire} className="space-y-4">

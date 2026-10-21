@@ -4,10 +4,9 @@ import { createClient } from "@/lib/supabase/server";
 
 /**
  * Point d'échange unique pour les liens Supabase Auth : confirmation
- * d'e-mail, mot de passe oublié, et (si réactivé un jour) OAuth
- * Google/Apple. Redirige vers `next` (par défaut le dashboard, qui
- * redirige lui-même vers l'onboarding si besoin) une fois la session
- * établie.
+ * d'e-mail, mot de passe oublié, et connexion Google (OAuth). Redirige
+ * vers `next` (par défaut le dashboard, qui redirige lui-même vers
+ * l'onboarding si besoin) une fois la session établie.
  *
  * Deux formats de lien sont acceptés :
  * - `token_hash` + `type` : lien construit à partir de `{{ .TokenHash }}`
@@ -30,6 +29,7 @@ export async function GET(request: NextRequest) {
   const tokenHash = searchParams.get("token_hash");
   const type = searchParams.get("type") as EmailOtpType | null;
   const next = searchParams.get("next") ?? "/accueil";
+  const erreurQuery = searchParams.get("error");
 
   const supabase = createClient();
 
@@ -43,7 +43,26 @@ export async function GET(request: NextRequest) {
     if (!error) {
       return NextResponse.redirect(`${origin}${next}`);
     }
+  } else if (erreurQuery) {
+    // Rare côté Google/Supabase : l'erreur arrive parfois directement en
+    // paramètre de requête plutôt qu'en fragment d'URL (cf. ci-dessous).
+    const motif = erreurQuery === "access_denied" ? "oauth_annule" : "oauth_echec";
+    return NextResponse.redirect(`${origin}/connexion?erreur=${motif}`);
   }
 
-  return NextResponse.redirect(`${origin}/connexion?erreur=auth`);
+  // Ni `code`, ni `token_hash`, ni `error` en paramètre de requête : c'est
+  // le cas typique d'une annulation sur l'écran Google (ex: l'utilisateur
+  // clique "Annuler"). Google/Supabase renvoient alors l'erreur en
+  // fragment d'URL (`#error=access_denied&...`), jamais transmis au
+  // serveur par le navigateur — illisible ici. On renvoie donc une page
+  // minimale qui le lit côté client et redirige aussitôt avec le bon
+  // message, plutôt que d'afficher par défaut "lien expiré" à quelqu'un
+  // qui a simplement annulé.
+  const html = `<!doctype html><html><body><script>
+    var p = new URLSearchParams(location.hash.slice(1));
+    var err = p.get("error") || p.get("error_code");
+    var motif = err === "access_denied" ? "oauth_annule" : (err ? "oauth_echec" : "auth");
+    location.replace("/connexion?erreur=" + motif);
+  </script></body></html>`;
+  return new NextResponse(html, { headers: { "Content-Type": "text/html; charset=utf-8" } });
 }
